@@ -80,22 +80,23 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange }: 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '12px 0' }}>
         {navItems.map(item => {
-          const active = view === item.id;
+          const active     = view === item.id;
+          const showBadge  = item.id === 'dashboard' && unread > 0;
           return (
             <button
               key={item.id}
               onClick={() => onNav(item.id)}
               style={{
-                display: 'flex',
+                display:    'flex',
                 alignItems: 'center',
-                gap: 10,
-                width: '100%',
-                padding: '10px 20px',
+                gap:        10,
+                width:      '100%',
+                padding:    '10px 20px',
                 background: active ? `${QVT_BLUE}20` : 'transparent',
-                border: 'none',
+                border:     'none',
                 borderLeft: active ? `3px solid ${QVT_BLUE}` : '3px solid transparent',
-                cursor: 'pointer',
-                textAlign: 'left',
+                cursor:     'pointer',
+                textAlign:  'left',
                 transition: 'background 0.15s',
               }}
             >
@@ -103,14 +104,28 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange }: 
                 {item.icon}
               </span>
               <span style={{
-                color: active ? C.textPrimary : C.textDim,
-                fontSize: 12,
-                fontWeight: active ? 700 : 600,
+                color:         active ? C.textPrimary : C.textDim,
+                fontSize:      12,
+                fontWeight:    active ? 700 : 600,
                 letterSpacing: '0.02em',
-                fontFamily: 'Montserrat, sans-serif',
+                fontFamily:    'Montserrat, sans-serif',
               }}>
                 {item.label}
               </span>
+              {showBadge && (
+                <span style={{
+                  marginLeft:   'auto',
+                  background:   C.error,
+                  color:        '#fff',
+                  borderRadius: 10,
+                  padding:      '1px 6px',
+                  fontSize:     10,
+                  fontWeight:   800,
+                  fontFamily:   'Montserrat, sans-serif',
+                }}>
+                  {unread}
+                </span>
+              )}
             </button>
           );
         })}
@@ -123,37 +138,51 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange }: 
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {ROLES.map(r => {
-            const m = ROLE_META[r];
-            const active = role === r;
+            const m           = ROLE_META[r];
+            const active      = role === r;
+            const roleUnread  = reminders.filter(rem => rem.toRole === r && !rem.read).length;
             return (
               <button
                 key={r}
                 onClick={() => onRoleChange(r)}
                 style={{
-                  display: 'flex',
+                  display:    'flex',
                   alignItems: 'center',
-                  gap: 8,
-                  padding: '6px 10px',
+                  gap:        8,
+                  padding:    '6px 10px',
                   borderRadius: 6,
-                  border: active ? `1px solid ${m.color}40` : '1px solid transparent',
+                  border:     active ? `1px solid ${m.color}40` : '1px solid transparent',
                   background: active ? `${m.color}15` : 'transparent',
-                  cursor: 'pointer',
-                  textAlign: 'left',
+                  cursor:     'pointer',
+                  textAlign:  'left',
                   transition: 'background 0.15s',
                 }}
               >
                 <span style={{ fontSize: 12 }}>{m.icon}</span>
                 <span style={{
-                  color: active ? m.color : C.textDim,
-                  fontSize: 11,
+                  color:      active ? m.color : C.textDim,
+                  fontSize:   11,
                   fontWeight: active ? 700 : 500,
                   fontFamily: 'Montserrat, sans-serif',
                 }}>
                   {m.label}
                 </span>
-                {active && (
+                {roleUnread > 0 ? (
+                  <span style={{
+                    marginLeft:   'auto',
+                    background:   m.color,
+                    color:        '#fff',
+                    borderRadius: 10,
+                    padding:      '1px 6px',
+                    fontSize:     10,
+                    fontWeight:   800,
+                    fontFamily:   'Montserrat, sans-serif',
+                  }}>
+                    {roleUnread}
+                  </span>
+                ) : active ? (
                   <span style={{ marginLeft: 'auto', color: m.color, fontSize: 10 }}>✓</span>
-                )}
+                ) : null}
               </button>
             );
           })}

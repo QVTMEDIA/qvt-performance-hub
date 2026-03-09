@@ -61,6 +61,10 @@ export default function HRDashboard({ ctx }: HRDashboardProps) {
     saveReminders(reminders.map(r => r.id === id ? { ...r, read: true } : r));
   }
 
+  function handleMarkAllRead() {
+    saveReminders(reminders.map(r => r.toRole === 'hr' ? { ...r, read: true } : r));
+  }
+
   function sendReminder(rev: Review) {
     addRem(
       rev.id,
@@ -90,7 +94,7 @@ export default function HRDashboard({ ctx }: HRDashboardProps) {
       <div style={{ padding: '24px 32px' }}>
 
         {/* NotifBar */}
-        <NotifBar reminders={reminders} role="hr" onOpen={handleOpen} onDismiss={handleDismiss} />
+        <NotifBar reminders={reminders} role="hr" onOpen={handleOpen} onDismiss={handleDismiss} onMarkAllRead={handleMarkAllRead} />
 
         {/* Stat Cards */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>

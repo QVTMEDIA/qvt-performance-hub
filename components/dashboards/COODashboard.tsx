@@ -54,6 +54,10 @@ export default function COODashboard({ ctx }: COODashboardProps) {
     saveReminders(reminders.map(r => r.id === id ? { ...r, read: true } : r));
   }
 
+  function handleMarkAllRead() {
+    saveReminders(reminders.map(r => r.toRole === 'coo' ? { ...r, read: true } : r));
+  }
+
   return (
     <div>
       {/* Header */}
@@ -72,7 +76,7 @@ export default function COODashboard({ ctx }: COODashboardProps) {
       <div style={{ padding: '24px 32px' }}>
 
         {/* NotifBar */}
-        <NotifBar reminders={reminders} role="coo" onOpen={handleOpen} onDismiss={handleDismiss} />
+        <NotifBar reminders={reminders} role="coo" onOpen={handleOpen} onDismiss={handleDismiss} onMarkAllRead={handleMarkAllRead} />
 
         {/* Stat Cards */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>

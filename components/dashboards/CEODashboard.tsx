@@ -60,6 +60,10 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
     saveReminders(reminders.map(r => r.id === id ? { ...r, read: true } : r));
   }
 
+  function handleMarkAllRead() {
+    saveReminders(reminders.map(r => r.toRole === 'ceo' ? { ...r, read: true } : r));
+  }
+
   function handleOpen(reviewId: string) {
     const rev = reviews.find(r => r.id === reviewId);
     if (rev) openReview(rev);
@@ -83,7 +87,7 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
       <div style={{ padding: '24px 32px' }}>
 
         {/* NotifBar */}
-        <NotifBar reminders={reminders} role="ceo" onOpen={handleOpen} onDismiss={handleDismiss} />
+        <NotifBar reminders={reminders} role="ceo" onOpen={handleOpen} onDismiss={handleDismiss} onMarkAllRead={handleMarkAllRead} />
 
         {/* Stat Cards */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>

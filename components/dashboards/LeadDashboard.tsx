@@ -29,6 +29,10 @@ export default function LeadDashboard({ ctx }: LeadDashboardProps) {
     saveReminders(reminders.map(r => r.id === id ? { ...r, read: true } : r));
   }
 
+  function handleMarkAllRead() {
+    saveReminders(reminders.map(r => r.toRole === 'lead' ? { ...r, read: true } : r));
+  }
+
   const SectionLabel = ({ label }: { label: string }) => (
     <div style={{
       color:         C.textDim,
@@ -73,6 +77,7 @@ export default function LeadDashboard({ ctx }: LeadDashboardProps) {
           role="lead"
           onOpen={handleOpen}
           onDismiss={handleDismiss}
+          onMarkAllRead={handleMarkAllRead}
         />
 
         {/* Stat Cards */}

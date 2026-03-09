@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Review, SelfReview, LeadReview, HRReview, COOReview } from '@/types';
-import { AppContext, LeadTxt, HrTxt, CooTxt } from '@/components/AppShell';
+import { Review, SelfReview, LeadReview, HRReview, COOReview, CEOReview } from '@/types';
+import { AppContext, LeadTxt, HrTxt, CooTxt, CeoTxt } from '@/components/AppShell';
 import { BEHAVIORAL, FUNCTIONAL, STAGE_META, STATUS_ORDER, Competency } from '@/lib/constants';
 import { calcSec, calcOverall, getBand } from '@/lib/scoring';
 import { BAND_COLORS, BANDS, C, QVT_BLUE, SC_COLORS, SC_LABELS } from '@/styles/brand';
@@ -19,6 +19,7 @@ import OverallCard from '@/components/shared/OverallCard';
 const LEAD_COLOR = '#0891b2';
 const HR_COLOR   = '#7c3aed';
 const COO_COLOR  = '#d97706';
+const CEO_COLOR  = '#dc2626';
 
 const REC_OPTIONS: Array<{ value: string; color: string }> = [
   { value: 'Promote', color: '#22c55e' },
@@ -1452,6 +1453,38 @@ function HRReadonlyTab({ rev }: { rev: Review }) {
   );
 }
 
+// ─── Read-only: COO tab (for CEO viewer) ──────────────────────────────────────
+function COOReadonlyTab({ rev }: { rev: Review }) {
+  const cooRev = rev.cooReview;
+
+  if (!cooRev) {
+    return (
+      <div style={{ padding: '48px 24px', textAlign: 'center', color: C.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+        No COO review data.
+      </div>
+    );
+  }
+
+  const isApproved = cooRev.decision === 'approved';
+
+  return (
+    <div>
+      <div style={{ padding: '10px 14px', background: `${C.textDim}12`, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 16, color: C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+        ℹ️ COO review — read only.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Txt label="Strategic Alignment Commentary" value={cooRev.text.strategicAlignment} onChange={() => {}} readonly rows={3} />
+        <Txt label="COO Recommendation &amp; Notes" value={cooRev.text.cooComments}        onChange={() => {}} readonly rows={3} />
+      </div>
+      <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: `${isApproved ? C.success : C.error}15`, border: `1px solid ${isApproved ? C.success : C.error}40`, color: isApproved ? C.success : C.error, borderRadius: 20, padding: '5px 14px', fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+          {isApproved ? '✓ Approved' : '↩ Returned'} {cooRev.submittedAt}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ─── HR: editable scoring tab ─────────────────────────────────────────────────
 interface HRScoringTabProps {
   rev:      Review;
@@ -1689,6 +1722,114 @@ function COOScoringTab({ rev, canEdit, cooTxt, setCooTxt, onSubmit, onDisapprove
   );
 }
 
+// ─── CEO: editable scoring tab ────────────────────────────────────────────────
+interface CEOScoringTabProps {
+  rev:          Review;
+  canEdit:      boolean;
+  ceoTxt:       CeoTxt;
+  setCeoTxt:    (v: CeoTxt) => void;
+  onSubmit:     () => void;
+  onDisapprove: () => void;
+}
+
+function CEOScoringTab({ rev, canEdit, ceoTxt, setCeoTxt, onSubmit, onDisapprove }: CEOScoringTabProps) {
+  const leadRev  = rev.leadReview;
+  const hrRev    = rev.hrReview;
+  const cooRev   = rev.cooReview;
+  const isCompleted = rev.status === 'completed';
+
+  const leadFields = leadRev ? [
+    { label: 'Major Strengths',       value: leadRev.text.strengths      },
+    { label: 'Areas for Improvement', value: leadRev.text.improvements   },
+    { label: 'Recommended Trainings', value: leadRev.text.trainings      },
+    { label: 'Recommendation',        value: leadRev.text.recommendation },
+  ] : [];
+
+  const hrFields = hrRev ? [
+    { label: 'HR Assessment',               value: hrRev.text.hrComments },
+    { label: 'Technical Development Plan',  value: hrRev.text.techDev   },
+    { label: 'Behavioral Development Plan', value: hrRev.text.behDev    },
+    { label: 'HR Remarks',                  value: hrRev.text.hrRemarks  },
+  ] : [];
+
+  const cooFields = cooRev ? [
+    { label: 'Strategic Alignment Commentary', value: cooRev.text.strategicAlignment },
+    { label: 'COO Recommendation & Notes',     value: cooRev.text.cooComments       },
+  ] : [];
+
+  return (
+    <div>
+      {/* Completed banner */}
+      {isCompleted && rev.ceoReview && (
+        <div style={{ padding: '10px 14px', background: `${C.success}0c`, border: `1px solid ${C.success}30`, borderRadius: 8, marginBottom: 12, color: C.success, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+          ✅ Fully approved on {rev.ceoReview.submittedAt}
+        </div>
+      )}
+
+      {/* Info banner when canEdit */}
+      {canEdit && (
+        <div style={{ padding: '10px 14px', background: `${CEO_COLOR}0c`, border: `1px solid ${CEO_COLOR}30`, borderRadius: 8, marginBottom: 12, color: '#fca5a5', fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+          Final stage. Review the complete appraisal package and make your decision. Approving will complete the appraisal and notify the employee.
+        </div>
+      )}
+
+      {/* Returned banner */}
+      {canEdit && rev.ceoReview?.decision === 'returned' && (
+        <div style={{ padding: '10px 14px', background: `${C.error}0c`, border: `1px solid ${C.error}30`, borderRadius: 8, marginBottom: 12, color: '#fca5a5', fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+          ↩ This appraisal was previously returned to COO for revision. Review the CEO notes before proceeding.
+        </div>
+      )}
+
+      <div style={{ marginBottom: 16 }}>
+        <OverallCard review={rev} />
+      </div>
+
+      {leadRev && <PrevFeedback icon="👥" title="Team Lead"        color={LEAD_COLOR} date={leadRev.submittedAt} fields={leadFields} />}
+      {hrRev   && <PrevFeedback icon="🤝" title="People Lead (HR)" color={HR_COLOR}   date={hrRev.submittedAt}  fields={hrFields}   />}
+      {cooRev  && <PrevFeedback icon="🏢" title="COO"              color={COO_COLOR}  date={cooRev.submittedAt} fields={cooFields}  />}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+        <Txt
+          label="Final Decision"
+          value={ceoTxt.finalDecision}
+          onChange={v => (canEdit && !isCompleted) && setCeoTxt({ ...ceoTxt, finalDecision: v })}
+          readonly={!canEdit || isCompleted} rows={3}
+          placeholder="Document your final decision and rationale for this appraisal outcome…"
+        />
+        <Txt
+          label="CEO Notes"
+          value={ceoTxt.ceoNotes}
+          onChange={v => (canEdit && !isCompleted) && setCeoTxt({ ...ceoTxt, ceoNotes: v })}
+          readonly={!canEdit || isCompleted} rows={2}
+          placeholder="Any additional notes or directives for HR regarding this employee…"
+        />
+      </div>
+
+      {canEdit && !isCompleted && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, gap: 16, flexWrap: 'wrap' as const }}>
+          <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+            Final Decision field is required for both actions.
+          </span>
+          <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+            <button
+              onClick={onDisapprove}
+              style={{ background: 'transparent', border: `2px solid ${C.error}`, borderRadius: 8, color: C.error, padding: '10px 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif', transition: 'all 0.15s' }}
+            >
+              ↩ Return to COO
+            </button>
+            <button
+              onClick={onSubmit}
+              style={{ background: C.success, border: 'none', borderRadius: 8, color: '#fff', padding: '10px 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif', transition: 'opacity 0.15s' }}
+            >
+              ✓ Approve &amp; Complete Appraisal
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── COO review detail (full layout) ──────────────────────────────────────────
 function COOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
   const [stageTab,   setStageTab]   = useState<StageTabId>('coo');
@@ -1770,6 +1911,87 @@ function COOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
   );
 }
 
+// ─── CEO review detail (full layout) ──────────────────────────────────────────
+function CEOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
+  const [stageTab,   setStageTab]   = useState<StageTabId>('ceo');
+  const [selfSubTab, setSelfSubTab] = useState<'beh' | 'fun' | 'comments'>('beh');
+
+  const { canEdit, ceoTxt, setCeoTxt } = ctx;
+  const statusIdx = STATUS_ORDER.indexOf(rev.status);
+
+  const dispBeh    = rev.leadReview?.behavioral ?? rev.selfReview?.behavioral ?? {};
+  const dispFun    = rev.leadReview?.functional ?? rev.selfReview?.functional ?? {};
+  const overallPct = calcOverall(dispBeh, dispFun);
+  const hasOverall = Object.keys(dispBeh).length > 0 || Object.keys(dispFun).length > 0;
+
+  function submitCEO() {
+    if (!ceoTxt.finalDecision.trim()) {
+      ctx.showToast('Please enter the final decision.', 'error');
+      return;
+    }
+    const ceoReview: CEOReview = { text: ceoTxt, submittedAt: today(), decision: 'approved' };
+    ctx.patch({ ...rev, status: 'completed', ceoReview });
+    ctx.addRem(rev.id, 'employee', `Your ${rev.period} appraisal has been fully approved by the CEO. View your results now.`);
+    ctx.showToast('Appraisal approved by CEO. Process complete! 🎉', 'success');
+  }
+
+  function disapproveCEO() {
+    if (!ceoTxt.finalDecision.trim()) {
+      ctx.showToast('Please enter the final decision.', 'error');
+      return;
+    }
+    const ceoReview: CEOReview = {
+      text:        { ...ceoTxt, disapprovalNote: ceoTxt.finalDecision },
+      submittedAt: today(),
+      decision:    'returned',
+    };
+    ctx.patch({ ...rev, status: 'hr_done', ceoReview });
+    ctx.addRem(rev.id, 'coo', `CEO has returned ${rev.employeeName}'s appraisal to COO for revision. Please review the CEO's notes.`);
+    ctx.showToast('Appraisal returned to COO for revision.', 'error');
+  }
+
+  return (
+    <div>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+          <button onClick={goBack} style={{ background: 'transparent', border: 'none', color: CEO_COLOR, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.02em' }}>
+            ← Back
+          </button>
+          {hasOverall && <Ring pct={overallPct} size={72} />}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+          <h1 style={{ color: C.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
+            {rev.employeeName}
+          </h1>
+          <StatusPill status={rev.status} />
+        </div>
+        {subtitle && (
+          <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+            {subtitle}
+          </p>
+        )}
+        <Timeline status={rev.status} />
+      </div>
+
+      <ReviewerTabBar stageTab={stageTab} setStageTab={setStageTab} activeColor={CEO_COLOR} statusIdx={statusIdx} rev={rev} />
+
+      <div style={{ padding: '24px 32px' }}>
+        {stageTab === 'self' && <LeadSelfTab rev={rev} selfSubTab={selfSubTab} setSelfSubTab={setSelfSubTab} />}
+        {stageTab === 'lead' && <LeadReadonlyTab rev={rev} />}
+        {stageTab === 'hr'   && <HRReadonlyTab rev={rev} />}
+        {stageTab === 'coo'  && <COOReadonlyTab rev={rev} />}
+        {stageTab === 'ceo'  && (
+          <CEOScoringTab
+            rev={rev} canEdit={canEdit.ceo}
+            ceoTxt={ceoTxt} setCeoTxt={setCeoTxt}
+            onSubmit={submitCEO} onDisapprove={disapproveCEO}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── ReviewDetail ──────────────────────────────────────────────────────────────
 export default function ReviewDetail({ ctx }: ReviewDetailProps) {
   const [activeTab, setActiveTab] = useState<'scores' | 'feedback' | 'submission'>('scores');
@@ -1801,8 +2023,9 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
   if (role === 'lead') return <LeadReviewDetail ctx={ctx} rev={rev} subtitle={subtitle} goBack={goBack} />;
   if (role === 'hr')   return <HRReviewDetail   ctx={ctx} rev={rev} subtitle={subtitle} goBack={goBack} />;
   if (role === 'coo')  return <COOReviewDetail  ctx={ctx} rev={rev} subtitle={subtitle} goBack={goBack} />;
+  if (role === 'ceo')  return <CEOReviewDetail  ctx={ctx} rev={rev} subtitle={subtitle} goBack={goBack} />;
 
-  // ── CEO stub (Phase 4D) ────────────────────────────────────────────────────
+  // ── (dead code guard — only 'employee' reaches here) ──────────────────────
   if (role !== 'employee') {
     return (
       <div>
@@ -1827,7 +2050,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
           <Timeline status={rev.status} />
         </div>
         <div style={{ padding: '32px', color: C.textMuted, fontSize: 12, fontFamily: 'Montserrat, sans-serif' }}>
-          CEO review form coming in Phase 4D.
+          Unknown role.
         </div>
       </div>
     );

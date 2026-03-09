@@ -6,9 +6,9 @@ import {
   Tooltip, ReferenceLine, ResponsiveContainer,
 } from 'recharts';
 import { Review, Reminder } from '@/types';
-import { calcOverall, getBand } from '@/lib/scoring';
-import { BAND_COLORS, C, QVT_BLUE } from '@/styles/brand';
-import { PERIODS } from '@/lib/constants';
+import { calcSec, calcOverall, getBand } from '@/lib/scoring';
+import { BAND_COLORS, C, QVT_BLUE, SC_COLORS } from '@/styles/brand';
+import { BEHAVIORAL, FUNCTIONAL, PERIODS } from '@/lib/constants';
 import { uid, today } from '@/lib/utils';
 import Inp from '@/components/atoms/Inp';
 import Sel from '@/components/atoms/Sel';
@@ -147,31 +147,123 @@ const PERIOD_OPTIONS = PERIODS.map(p => ({ v: p, l: p }));
 
 // ─── Trend chart tooltip ──────────────────────────────────────────────────────
 function ChartTooltip({ active, payload, label }: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
+  active?:  boolean;
+  payload?: Array<{ name: string; value: number }>;
+  label?:   string;
 }) {
   if (!active || !payload?.length) return null;
-  const score = payload[0].value;
-  const band  = getBand(score);
+  const overall = payload.find(p => p.name === 'score');
+  const beh     = payload.find(p => p.name === 'behavioral');
+  const fun     = payload.find(p => p.name === 'functional');
+  const score   = overall?.value ?? 0;
+  const band    = score > 0 ? getBand(score) : null;
+
   return (
-    <div
-      style={{
-        background:   C.cardBg,
-        border:       `1px solid ${C.border}`,
-        borderRadius: 8,
-        padding:      '8px 12px',
-        fontFamily:   'Montserrat, sans-serif',
-      }}
-    >
-      <div style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, marginBottom: 4 }}>
-        {label}
+    <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px', fontFamily: 'Montserrat, sans-serif', minWidth: 160 }}>
+      <div style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, marginBottom: 6 }}>{label}</div>
+      {band && (
+        <>
+          <div style={{ color: BAND_COLORS[band], fontSize: 18, fontWeight: 800, lineHeight: 1 }}>
+            {Math.round(score)}%
+          </div>
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, marginTop: 2, marginBottom: 6 }}>
+            {band}
+          </div>
+        </>
+      )}
+      {beh && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>
+          <span style={{ color: '#0891b2', fontSize: 10, fontWeight: 600 }}>Behavioural</span>
+          <span style={{ color: '#0891b2', fontSize: 10, fontWeight: 800 }}>{Math.round(beh.value)}%</span>
+        </div>
+      )}
+      {fun && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 2 }}>
+          <span style={{ color: '#7c3aed', fontSize: 10, fontWeight: 600 }}>Functional</span>
+          <span style={{ color: '#7c3aed', fontSize: 10, fontWeight: 800 }}>{Math.round(fun.value)}%</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Competency breakdown card ────────────────────────────────────────────────
+function CompBreakdown({ rev }: { rev: Review }) {
+  const beh    = rev.leadReview?.behavioral ?? {};
+  const fun    = rev.leadReview?.functional ?? {};
+  const hasBeh = Object.keys(beh).length > 0;
+  const hasFun = Object.keys(fun).length > 0;
+  if (!hasBeh && !hasFun) return null;
+
+  const behSec  = calcSec(beh);
+  const funSec  = calcSec(fun);
+  const behBand = getBand(behSec);
+  const funBand = getBand(funSec);
+
+  const behRows = BEHAVIORAL
+    .map(c => ({ label: c.label, score: (beh[c.key] as number) ?? 0 }))
+    .sort((a, b) => a.score - b.score);
+
+  const funRows = FUNCTIONAL
+    .map(c => ({ label: c.label, score: (fun[c.key] as number) ?? 0 }))
+    .sort((a, b) => a.score - b.score);
+
+  function CompRow({ label, score }: { label: string; score: number }) {
+    const color = score > 0 ? SC_COLORS[score] : C.textDim;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+        <div style={{ flex: 1, color: C.textMuted, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.3 }}>
+          {label}
+        </div>
+        <div style={{ width: 80, height: 6, background: '#0c2035', borderRadius: 3, flexShrink: 0, position: 'relative' as const, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute' as const, left: 0, top: 0, height: '100%', width: `${(score / 5) * 100}%`, background: color, borderRadius: 3, transition: 'width 0.3s ease' }} />
+        </div>
+        <div style={{ width: 18, textAlign: 'right' as const, color, fontSize: 11, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', flexShrink: 0 }}>
+          {score > 0 ? score : '—'}
+        </div>
       </div>
-      <div style={{ color: BAND_COLORS[band], fontSize: 16, fontWeight: 800 }}>
-        {score}%
+    );
+  }
+
+  function Section({ title, rows, secPct, band }: {
+    title:  string;
+    rows:   Array<{ label: string; score: number }>;
+    secPct: number;
+    band:   string;
+  }) {
+    return (
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 12, fontFamily: 'Montserrat, sans-serif' }}>
+          {title}
+        </div>
+        {rows.map(r => <CompRow key={r.label} label={r.label} score={r.score} />)}
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+          <span style={{ color: BAND_COLORS[band as keyof typeof BAND_COLORS] ?? C.textMuted, fontSize: 12, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
+            {Math.round(secPct)}%
+          </span>
+          <span style={{ color: C.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginLeft: 6 }}>
+            — {band}
+          </span>
+        </div>
       </div>
-      <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, marginTop: 2 }}>
-        {band}
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap' as const, gap: 8 }}>
+          <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
+            🎯 Latest Competency Breakdown
+          </div>
+          <div style={{ color: C.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+            {rev.period}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' as const }}>
+          {hasBeh && <Section title="Part I — Behavioural" rows={behRows} secPct={behSec} band={behBand} />}
+          {hasFun && <Section title="Part II — Functional"  rows={funRows} secPct={funSec} band={funBand} />}
+        </div>
       </div>
     </div>
   );
@@ -284,14 +376,46 @@ export default function EmployeeDashboard({
     const lastCompleted = completedRevs[completedRevs.length - 1] ?? null;
     const latestScore   = lastCompleted ? getScore(lastCompleted) : null;
 
-    const chartData = completedRevs.map(r => ({
-      period: r.period,
-      score:  Math.round(getScore(r)),
-    }));
+    // ── Trend data (sorted by period index) ──────────────────────────────────
+    const sortedCompleted = [...completedRevs].sort(
+      (a, b) => PERIODS.indexOf(a.period) - PERIODS.indexOf(b.period),
+    );
 
-    const avgScore = chartData.length > 0
-      ? Math.round(chartData.reduce((s, d) => s + d.score, 0) / chartData.length)
-      : null;
+    const trendData = sortedCompleted.map((rev, i, arr) => {
+      const beh   = rev.leadReview?.behavioral ?? rev.selfReview?.behavioral ?? {};
+      const fun   = rev.leadReview?.functional ?? rev.selfReview?.functional ?? {};
+      const score = Math.round(calcOverall(beh, fun));
+      const avg   = Math.round(
+        arr.slice(0, i + 1).reduce((sum, r) => {
+          const b = r.leadReview?.behavioral ?? r.selfReview?.behavioral ?? {};
+          const f = r.leadReview?.functional ?? r.selfReview?.functional ?? {};
+          return sum + calcOverall(b, f);
+        }, 0) / (i + 1),
+      );
+      const behPct = Object.keys(beh).length > 0 ? Math.round(calcSec(beh)) : undefined;
+      const funPct = Object.keys(fun).length > 0 ? Math.round(calcSec(fun)) : undefined;
+      return { period: rev.period, score, avg, behavioral: behPct, functional: funPct };
+    });
+
+    // ── Performance summary stats (used when trendData.length >= 2) ──────────
+    const summaryScores = trendData.map(d => d.score);
+    const bestScore     = summaryScores.length > 0 ? Math.max(...summaryScores) : 0;
+    const sumAvg        = summaryScores.length > 0
+      ? Math.round(summaryScores.reduce((s, v) => s + v, 0) / summaryScores.length)
+      : 0;
+    const latestTrendScore = trendData[trendData.length - 1]?.score ?? 0;
+    const prevTrendScore   = trendData[trendData.length - 2]?.score ?? 0;
+    const trendDir =
+      latestTrendScore > prevTrendScore ? 'up'
+      : latestTrendScore < prevTrendScore ? 'down'
+      : 'stable';
+    const trendLabel = trendDir === 'up' ? '↑ Improving' : trendDir === 'down' ? '↓ Declining' : '→ Stable';
+    const trendColor = trendDir === 'up' ? C.success : trendDir === 'down' ? C.error : C.blue;
+
+    // ── Period range label ────────────────────────────────────────────────────
+    const periodRange = trendData.length > 1
+      ? `${trendData[0].period} — ${trendData[trendData.length - 1].period}`
+      : trendData[0]?.period ?? '';
 
     return (
       <div>
@@ -640,73 +764,146 @@ export default function EmployeeDashboard({
             />
           </div>
 
-          {/* ── Trend chart ─────────────────────────────────────────────────── */}
-          {chartData.length > 0 && (
+          {/* ── Performance Summary (2+ completed) ──────────────────────── */}
+          {trendData.length >= 2 && (
             <div style={{ marginBottom: 28 }}>
-              <div
-                style={{
-                  color:         C.textDim,
-                  fontSize:      10,
-                  fontWeight:    700,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  marginBottom:  12,
-                  fontFamily:    'Montserrat, sans-serif',
-                }}
-              >
-                Performance Trend
+              <div style={{ background: '#071523', border: '1px solid #0c2035', borderRadius: 12, padding: 20 }}>
+                <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', marginBottom: 16 }}>
+                  📊 Performance Summary
+                </div>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' as const }}>
+                  <div style={{ flex: 1, minWidth: 100, background: C.appBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Best Score</div>
+                    <div style={{ color: BAND_COLORS[getBand(bestScore)], fontSize: 24, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', lineHeight: 1 }}>{bestScore}%</div>
+                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>{getBand(bestScore)}</div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 100, background: C.appBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Latest Score</div>
+                    <div style={{ color: BAND_COLORS[getBand(latestTrendScore)], fontSize: 24, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', lineHeight: 1 }}>{latestTrendScore}%</div>
+                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>{getBand(latestTrendScore)}</div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 100, background: C.appBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Average Score</div>
+                    <div style={{ color: BAND_COLORS[getBand(sumAvg)], fontSize: 24, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', lineHeight: 1 }}>{sumAvg}%</div>
+                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>{getBand(sumAvg)}</div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 100, background: C.appBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Trend</div>
+                    <div style={{ color: trendColor, fontSize: 18, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', lineHeight: 1 }}>{trendLabel}</div>
+                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>vs. previous period</div>
+                  </div>
+                </div>
               </div>
-              <div
-                style={{
-                  background:   C.cardBg,
-                  border:       `1px solid ${C.border}`,
-                  borderRadius: 10,
-                  padding:      '16px 16px 8px',
-                }}
-              >
-                <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={chartData} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+            </div>
+          )}
+
+          {/* ── Trend Chart (1+ completed) ───────────────────────────────────── */}
+          {trendData.length >= 1 && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ background: '#071523', border: '1px solid #0c2035', borderRadius: 12, padding: 20 }}>
+                {/* Title row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap' as const, gap: 8 }}>
+                  <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
+                    📈 Performance Trend
+                  </div>
+                  {periodRange && (
+                    <div style={{ color: C.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+                      {periodRange}
+                    </div>
+                  )}
+                </div>
+
+                {/* Chart */}
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#0f1e32" />
                     <XAxis
                       dataKey="period"
-                      tick={{ fill: C.textDim, fontSize: 10, fontFamily: 'Montserrat, sans-serif' }}
-                      axisLine={{ stroke: C.border }}
+                      tick={{ fill: '#334155', fontSize: 10, fontFamily: 'Montserrat, sans-serif' }}
+                      axisLine={false}
                       tickLine={false}
                     />
                     <YAxis
                       domain={[0, 100]}
-                      tick={{ fill: C.textDim, fontSize: 10, fontFamily: 'Montserrat, sans-serif' }}
+                      tickFormatter={(v: number) => `${v}%`}
+                      tick={{ fill: '#334155', fontSize: 10, fontFamily: 'Montserrat, sans-serif' }}
                       axisLine={false}
                       tickLine={false}
-                      width={28}
+                      width={36}
                     />
                     <Tooltip content={<ChartTooltip />} />
-                    <ReferenceLine y={40} stroke="#ef4444" strokeDasharray="4 2" strokeOpacity={0.6} />
-                    <ReferenceLine y={60} stroke="#f59e0b" strokeDasharray="4 2" strokeOpacity={0.6} />
-                    <ReferenceLine y={80} stroke="#22c55e" strokeDasharray="4 2" strokeOpacity={0.6} />
-                    <ReferenceLine y={90} stroke="#10b981" strokeDasharray="4 2" strokeOpacity={0.6} />
-                    {avgScore !== null && (
-                      <ReferenceLine
-                        y={avgScore}
-                        stroke={QVT_BLUE}
-                        strokeDasharray="6 3"
-                        strokeOpacity={0.5}
-                        label={{ value: `avg ${avgScore}%`, fill: QVT_BLUE, fontSize: 9, fontFamily: 'Montserrat, sans-serif', position: 'insideTopRight' }}
-                      />
-                    )}
+                    <ReferenceLine y={90} stroke="#10b981" strokeDasharray="4 4" strokeOpacity={0.7}
+                      label={{ value: 'Exceptional', fill: '#10b981', fontSize: 8, fontFamily: 'Montserrat, sans-serif', position: 'insideTopRight' }} />
+                    <ReferenceLine y={80} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.7}
+                      label={{ value: 'Very Good', fill: '#22c55e', fontSize: 8, fontFamily: 'Montserrat, sans-serif', position: 'insideTopRight' }} />
+                    <ReferenceLine y={60} stroke="#3b82f6" strokeDasharray="4 4" strokeOpacity={0.7}
+                      label={{ value: 'Good', fill: '#3b82f6', fontSize: 8, fontFamily: 'Montserrat, sans-serif', position: 'insideTopRight' }} />
+                    <ReferenceLine y={40} stroke="#f59e0b" strokeDasharray="4 4" strokeOpacity={0.7}
+                      label={{ value: 'Needs Improvement', fill: '#f59e0b', fontSize: 8, fontFamily: 'Montserrat, sans-serif', position: 'insideTopRight' }} />
+                    {/* Behavioral dashed line */}
+                    <Line
+                      type="monotone"
+                      dataKey="behavioral"
+                      stroke="#0891b2"
+                      strokeWidth={1.5}
+                      strokeDasharray="5 3"
+                      dot={false}
+                      connectNulls
+                    />
+                    {/* Functional dashed line */}
+                    <Line
+                      type="monotone"
+                      dataKey="functional"
+                      stroke="#7c3aed"
+                      strokeWidth={1.5}
+                      strokeDasharray="5 3"
+                      dot={false}
+                      connectNulls
+                    />
+                    {/* Overall score line with band-colored dots */}
                     <Line
                       type="monotone"
                       dataKey="score"
                       stroke={QVT_BLUE}
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: QVT_BLUE, strokeWidth: 0 }}
-                      activeDot={{ r: 6, fill: QVT_BLUE }}
+                      strokeWidth={2.5}
+                      dot={(props: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+                        if (!props.cx || !props.cy) return <g key="empty" />;
+                        const color = BAND_COLORS[getBand(Math.round(props.value ?? 0))];
+                        return <circle key={`dot-${props.index}`} cx={props.cx} cy={props.cy} r={5} fill={color} stroke="#071523" strokeWidth={1.5} />;
+                      }}
+                      activeDot={{ r: 7, fill: QVT_BLUE, stroke: '#071523', strokeWidth: 2 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
+
+                {/* Custom legend */}
+                <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' as const }}>
+                  {[
+                    { color: QVT_BLUE,   label: 'Overall',      dash: false },
+                    { color: '#0891b2',  label: 'Behavioural',  dash: true  },
+                    { color: '#7c3aed',  label: 'Functional',   dash: true  },
+                  ].map(({ color, label, dash }) => (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <svg width={24} height={2} style={{ flexShrink: 0 }}>
+                        <line x1="0" y1="1" x2="24" y2="1" stroke={color} strokeWidth={dash ? 1.5 : 2.5} strokeDasharray={dash ? '5 3' : undefined} />
+                      </svg>
+                      <span style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Single-point hint */}
+                {trendData.length === 1 && (
+                  <div style={{ marginTop: 12, textAlign: 'center', color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+                    Complete more review cycles to see your trend
+                  </div>
+                )}
               </div>
             </div>
           )}
+
+          {/* ── Competency Breakdown (1+ completed with scores) ──────────────── */}
+          {lastCompleted && <CompBreakdown rev={lastCompleted} />}
 
           {/* ── Completed history table ──────────────────────────────────────── */}
           {completedRevs.length > 0 && (

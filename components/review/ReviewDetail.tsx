@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Review, SelfReview, LeadReview } from '@/types';
-import { AppContext, LeadTxt } from '@/components/AppShell';
+import { Review, SelfReview, LeadReview, HRReview, COOReview } from '@/types';
+import { AppContext, LeadTxt, HrTxt, CooTxt } from '@/components/AppShell';
 import { BEHAVIORAL, FUNCTIONAL, STAGE_META, STATUS_ORDER, Competency } from '@/lib/constants';
 import { calcSec, calcOverall, getBand } from '@/lib/scoring';
 import { BAND_COLORS, BANDS, C, QVT_BLUE, SC_COLORS, SC_LABELS } from '@/styles/brand';
@@ -15,8 +15,10 @@ import SelfScoreTable from '@/components/shared/SelfScoreTable';
 import CompareTable from '@/components/shared/CompareTable';
 import OverallCard from '@/components/shared/OverallCard';
 
-// ─── Lead-path constants ───────────────────────────────────────────────────────
+// ─── Role-path constants ───────────────────────────────────────────────────────
 const LEAD_COLOR = '#0891b2';
+const HR_COLOR   = '#7c3aed';
+const COO_COLOR  = '#d97706';
 
 const REC_OPTIONS: Array<{ value: string; color: string }> = [
   { value: 'Promote', color: '#22c55e' },
@@ -24,6 +26,78 @@ const REC_OPTIONS: Array<{ value: string; color: string }> = [
   { value: 'PIP',     color: '#d97706' },
   { value: 'Review',  color: '#64748b' },
 ];
+
+// ─── Shared reviewer utilities ─────────────────────────────────────────────────
+type StageTabId = 'self' | 'lead' | 'hr' | 'coo' | 'ceo';
+
+function stageIsDone(rev: Review, tab: StageTabId): boolean {
+  switch (tab) {
+    case 'self': return !!rev.selfReview;
+    case 'lead': return !!rev.leadReview;
+    case 'hr':   return !!rev.hrReview;
+    case 'coo':  return !!rev.cooReview;
+    case 'ceo':  return !!rev.ceoReview;
+  }
+}
+
+/** A tab is locked only if status hasn't reached it AND there's no existing data for it. */
+function stageIsLocked(statusIdx: number, tab: StageTabId, rev: Review): boolean {
+  const minIdx: Record<StageTabId, number> = { self: 1, lead: 1, hr: 2, coo: 3, ceo: 4 };
+  return statusIdx < minIdx[tab] && !stageIsDone(rev, tab);
+}
+
+/** Shared 5-stage tab bar used by all reviewer roles. */
+function ReviewerTabBar({
+  stageTab, setStageTab, activeColor, statusIdx, rev,
+}: {
+  stageTab:    StageTabId;
+  setStageTab: (t: StageTabId) => void;
+  activeColor: string;
+  statusIdx:   number;
+  rev:         Review;
+}) {
+  const tabs = [
+    { id: 'self' as StageTabId, icon: '👤', label: 'Self-Review' },
+    { id: 'lead' as StageTabId, icon: '👥', label: 'Team Lead' },
+    { id: 'hr'   as StageTabId, icon: '🤝', label: 'People Lead (HR)' },
+    { id: 'coo'  as StageTabId, icon: '🏢', label: 'COO' },
+    { id: 'ceo'  as StageTabId, icon: '🎯', label: 'CEO' },
+  ];
+  return (
+    <div style={{ padding: '0 32px', borderBottom: `1px solid ${C.border}`, display: 'flex', overflowX: 'auto' as const }}>
+      {tabs.map(tab => {
+        const locked   = stageIsLocked(statusIdx, tab.id, rev);
+        const done     = stageIsDone(rev, tab.id);
+        const isActive = stageTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => !locked && setStageTab(tab.id)}
+            title={locked ? 'This stage has not been reached yet' : undefined}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'transparent', border: 'none',
+              borderBottom: `2px solid ${isActive && !locked ? activeColor : 'transparent'}`,
+              color: locked ? C.textDim : isActive ? C.textPrimary : C.textMuted,
+              padding: '12px 16px', fontSize: 12, fontWeight: 700,
+              cursor: locked ? 'not-allowed' : 'pointer',
+              fontFamily: 'Montserrat, sans-serif', opacity: locked ? 0.4 : 1,
+              transition: 'color 0.15s, border-color 0.15s',
+              marginBottom: -1, whiteSpace: 'nowrap' as const, flexShrink: 0,
+            }}
+          >
+            <span>{tab.icon}</span>
+            <span>{tab.label}</span>
+            {locked && <span style={{ fontSize: 10 }}>🔒</span>}
+            {!locked && done && !isActive && (
+              <span style={{ color: C.success, fontSize: 11, fontWeight: 800 }}>✓</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 interface ReviewDetailProps {
   ctx: AppContext;
@@ -977,7 +1051,7 @@ function LeadScoringTab({
   );
 }
 
-// ─── Lead: placeholder for stages not yet reached ─────────────────────────────
+// ─── Stage placeholder card (used by all reviewer roles) ──────────────────────
 function StageHolder({ stageName, stageData }: { stageName: string; stageData: unknown }) {
   if (!stageData) {
     return (
@@ -993,14 +1067,39 @@ function StageHolder({ stageName, stageData }: { stageName: string; stageData: u
     );
   }
 
+  // Check if this is a COO review that was returned
+  const data       = stageData as { decision?: string; text?: { disapprovalNote?: string; cooComments?: string }; submittedAt?: string };
+  const isReturned = data.decision === 'returned';
+  const note       = data.text?.disapprovalNote ?? '';
+
   return (
-    <div style={{ padding: '20px 24px', background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12 }}>
-      <div style={{ color: C.success, fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', marginBottom: 10 }}>
-        ✓ {stageName} review submitted.
-      </div>
-      <div style={{ color: C.textDim, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif' }}>
-        Full review details will be shown in a future phase.
-      </div>
+    <div style={{ padding: '20px 24px', background: C.cardBg, border: `1px solid ${isReturned ? C.error + '40' : C.border}`, borderRadius: 12 }}>
+      {isReturned ? (
+        <>
+          <div style={{ color: C.error, fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', marginBottom: note ? 12 : 0 }}>
+            ↩ {stageName} returned this appraisal for revision.
+          </div>
+          {note && (
+            <div>
+              <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontFamily: 'Montserrat, sans-serif', marginBottom: 4 }}>
+                COO Notes
+              </div>
+              <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+                {note}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div style={{ color: C.success, fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', marginBottom: 8 }}>
+            ✓ {stageName} review submitted.
+          </div>
+          <div style={{ color: C.textDim, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif' }}>
+            Full review details available in Phase 4D.
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1194,6 +1293,483 @@ function LeadReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
   );
 }
 
+// ─── Collapsible previous-stage feedback card ──────────────────────────────────
+function PrevFeedback({
+  icon, title, color, date, fields, defaultOpen = false,
+}: {
+  icon:         string;
+  title:        string;
+  color:        string;
+  date:         string;
+  fields:       Array<{ label: string; value: string }>;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const filtered = fields.filter(f => f.value?.trim());
+  if (filtered.length === 0) return null;
+
+  return (
+    <div style={{ border: `1px solid ${color}35`, borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', padding: '10px 16px',
+          background: `${color}12`, border: 'none', cursor: 'pointer',
+          gap: 8, textAlign: 'left' as const,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 14 }}>{icon}</span>
+          <span style={{ color, fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>{title}</span>
+          <span style={{ color: C.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif' }}>
+            · submitted {date}
+          </span>
+        </div>
+        <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', flexShrink: 0 }}>
+          {open ? '▲' : '▼'}
+        </span>
+      </button>
+      {open && (
+        <div style={{ padding: '12px 16px', background: C.cardBg, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {filtered.map(f => (
+            <div key={f.label}>
+              <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontFamily: 'Montserrat, sans-serif', marginBottom: 3 }}>
+                {f.label}
+              </div>
+              <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+                {f.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Read-only: Team Lead tab (for HR / COO viewers) ──────────────────────────
+function LeadReadonlyTab({ rev }: { rev: Review }) {
+  const [subTab, setSubTab] = useState<'beh' | 'fun' | 'feedback'>('beh');
+  const leadRev = rev.leadReview;
+
+  if (!leadRev) {
+    return (
+      <div style={{ padding: '48px 24px', textAlign: 'center', color: C.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+        No Team Lead review data.
+      </div>
+    );
+  }
+
+  const subTabs = [
+    { id: 'beh',      label: 'Part I: Behavioral' },
+    { id: 'fun',      label: 'Part II: Functional' },
+    { id: 'feedback', label: 'Feedback' },
+  ] as const;
+
+  return (
+    <div>
+      <div style={{ padding: '10px 14px', background: `${C.textDim}12`, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 16, color: C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+        ℹ️ Team Lead review — read only.
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <OverallCard review={rev} />
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {subTabs.map(t => {
+          const isSel = subTab === t.id;
+          return (
+            <button key={t.id} onClick={() => setSubTab(t.id)} style={{
+              background: isSel ? `${LEAD_COLOR}20` : C.cardBg, border: `1px solid ${isSel ? LEAD_COLOR : C.border}`,
+              borderRadius: 8, color: isSel ? LEAD_COLOR : C.textMuted, fontSize: 12, fontWeight: 700,
+              cursor: 'pointer', padding: '8px 14px', fontFamily: 'Montserrat, sans-serif', transition: 'all 0.15s',
+            }}>{t.label}</button>
+          );
+        })}
+      </div>
+      {subTab === 'beh' && (
+        <SelfScoreTable title="Part I: Behavioral Assessment (50%)" comps={BEHAVIORAL} scores={leadRev.behavioral} readonly />
+      )}
+      {subTab === 'fun' && (
+        <SelfScoreTable title="Part II: Functional Assessment (50%)" comps={FUNCTIONAL} scores={leadRev.functional} readonly />
+      )}
+      {subTab === 'feedback' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Txt label="Major Strengths"             value={leadRev.text.strengths}        onChange={() => {}} readonly rows={3} />
+          <Txt label="Areas for Improvement"       value={leadRev.text.improvements}     onChange={() => {}} readonly rows={3} />
+          <Txt label="Recommended Trainings"       value={leadRev.text.trainings}        onChange={() => {}} readonly rows={2} />
+          <Txt label="Employee Comments on Record" value={leadRev.text.employeeComments} onChange={() => {}} readonly rows={2} />
+          {leadRev.text.recommendation && (
+            <div>
+              <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>
+                Recommendation
+              </div>
+              <span style={{ background: `${LEAD_COLOR}20`, border: `1px solid ${LEAD_COLOR}50`, color: LEAD_COLOR, borderRadius: 20, padding: '4px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+                {leadRev.text.recommendation}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+      <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: `${C.success}15`, border: `1px solid ${C.success}40`, color: C.success, borderRadius: 20, padding: '5px 14px', fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+          ✓ Submitted {leadRev.submittedAt}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Read-only: HR tab (for COO viewer) ───────────────────────────────────────
+function HRReadonlyTab({ rev }: { rev: Review }) {
+  const hrRev = rev.hrReview;
+
+  if (!hrRev) {
+    return (
+      <div style={{ padding: '48px 24px', textAlign: 'center', color: C.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+        No HR review data.
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ padding: '10px 14px', background: `${C.textDim}12`, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 16, color: C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+        ℹ️ People Lead (HR) review — read only.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Txt label="HR Assessment"               value={hrRev.text.hrComments} onChange={() => {}} readonly rows={3} />
+        <Txt label="Technical Development Plan"  value={hrRev.text.techDev}    onChange={() => {}} readonly rows={3} />
+        <Txt label="Behavioral Development Plan" value={hrRev.text.behDev}     onChange={() => {}} readonly rows={3} />
+        <Txt label="HR Remarks"                  value={hrRev.text.hrRemarks}  onChange={() => {}} readonly rows={2} />
+      </div>
+      <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: `${C.success}15`, border: `1px solid ${C.success}40`, color: C.success, borderRadius: 20, padding: '5px 14px', fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+          ✓ Submitted {hrRev.submittedAt}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── HR: editable scoring tab ─────────────────────────────────────────────────
+interface HRScoringTabProps {
+  rev:      Review;
+  canEdit:  boolean;
+  hrTxt:    HrTxt;
+  setHrTxt: (v: HrTxt) => void;
+  onSubmit: () => void;
+}
+
+function HRScoringTab({ rev, canEdit, hrTxt, setHrTxt, onSubmit }: HRScoringTabProps) {
+  const leadRev = rev.leadReview;
+
+  const bannerText = canEdit
+    ? "Review the Team Lead's agreed scores and feedback, then complete your HR assessment and development plan."
+    : rev.hrReview ? '✓ HR review submitted — read only.' : '⏳ HR review not yet submitted.';
+
+  const leadFields = leadRev ? [
+    { label: 'Major Strengths',       value: leadRev.text.strengths      },
+    { label: 'Areas for Improvement', value: leadRev.text.improvements   },
+    { label: 'Recommended Trainings', value: leadRev.text.trainings      },
+    { label: 'Recommendation',        value: leadRev.text.recommendation },
+  ] : [];
+
+  return (
+    <div>
+      <div style={{ padding: '10px 14px', background: canEdit ? `${HR_COLOR}0c` : `${C.textDim}12`, border: `1px solid ${canEdit ? HR_COLOR + '30' : C.border}`, borderRadius: 8, marginBottom: 16, color: canEdit ? '#c4b5fd' : C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+        {bannerText}
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <OverallCard review={rev} />
+      </div>
+      {leadRev && (
+        <PrevFeedback icon="👥" title="Team Lead" color={LEAD_COLOR} date={leadRev.submittedAt} fields={leadFields} />
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+        <Txt
+          label="HR Assessment"
+          value={hrTxt.hrComments}
+          onChange={v => canEdit && setHrTxt({ ...hrTxt, hrComments: v })}
+          readonly={!canEdit} rows={3}
+          placeholder="Overall HR evaluation of this employee's performance and conduct…"
+        />
+        <Txt
+          label="Technical Development Plan"
+          value={hrTxt.techDev}
+          onChange={v => canEdit && setHrTxt({ ...hrTxt, techDev: v })}
+          readonly={!canEdit} rows={3}
+          placeholder="Specific technical skills, tools, or certifications to pursue…"
+        />
+        <Txt
+          label="Behavioral Development Plan"
+          value={hrTxt.behDev}
+          onChange={v => canEdit && setHrTxt({ ...hrTxt, behDev: v })}
+          readonly={!canEdit} rows={3}
+          placeholder="Soft skills, leadership, communication improvements…"
+        />
+        <Txt
+          label="HR Remarks"
+          value={hrTxt.hrRemarks}
+          onChange={v => canEdit && setHrTxt({ ...hrTxt, hrRemarks: v })}
+          readonly={!canEdit} rows={2}
+          placeholder="Any additional notes for COO and CEO consideration…"
+        />
+      </div>
+      {canEdit && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 28 }}>
+          <button
+            onClick={onSubmit}
+            style={{ background: HR_COLOR, border: 'none', borderRadius: 8, color: '#fff', padding: '12px 28px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.02em' }}
+          >
+            Submit HR Review →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── HR review detail (full layout) ───────────────────────────────────────────
+function HRReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
+  const [stageTab,   setStageTab]   = useState<StageTabId>('hr');
+  const [selfSubTab, setSelfSubTab] = useState<'beh' | 'fun' | 'comments'>('beh');
+
+  const { canEdit, hrTxt, setHrTxt } = ctx;
+  const statusIdx = STATUS_ORDER.indexOf(rev.status);
+
+  const dispBeh    = rev.leadReview?.behavioral ?? rev.selfReview?.behavioral ?? {};
+  const dispFun    = rev.leadReview?.functional ?? rev.selfReview?.functional ?? {};
+  const overallPct = calcOverall(dispBeh, dispFun);
+  const hasOverall = Object.keys(dispBeh).length > 0 || Object.keys(dispFun).length > 0;
+
+  function submitHR() {
+    if (!hrTxt.hrComments.trim()) {
+      ctx.showToast('Please add your HR assessment before submitting.', 'error');
+      return;
+    }
+    const hrReview: HRReview = { text: hrTxt, submittedAt: today() };
+    ctx.patch({ ...rev, status: 'hr_done', hrReview });
+    ctx.addRem(rev.id, 'coo', `HR review complete for ${rev.employeeName}. COO review required.`);
+    ctx.showToast('HR review submitted! COO notified.', 'success');
+  }
+
+  return (
+    <div>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+          <button onClick={goBack} style={{ background: 'transparent', border: 'none', color: HR_COLOR, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.02em' }}>
+            ← Back
+          </button>
+          {hasOverall && <Ring pct={overallPct} size={72} />}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+          <h1 style={{ color: C.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
+            {rev.employeeName}
+          </h1>
+          <StatusPill status={rev.status} />
+        </div>
+        {subtitle && (
+          <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+            {subtitle}
+          </p>
+        )}
+        <Timeline status={rev.status} />
+      </div>
+
+      <ReviewerTabBar stageTab={stageTab} setStageTab={setStageTab} activeColor={HR_COLOR} statusIdx={statusIdx} rev={rev} />
+
+      <div style={{ padding: '24px 32px' }}>
+        {stageTab === 'self' && <LeadSelfTab rev={rev} selfSubTab={selfSubTab} setSelfSubTab={setSelfSubTab} />}
+        {stageTab === 'lead' && <LeadReadonlyTab rev={rev} />}
+        {stageTab === 'hr'   && <HRScoringTab rev={rev} canEdit={canEdit.hr} hrTxt={hrTxt} setHrTxt={setHrTxt} onSubmit={submitHR} />}
+        {stageTab === 'coo'  && <StageHolder stageName="COO" stageData={rev.cooReview} />}
+        {stageTab === 'ceo'  && <StageHolder stageName="CEO" stageData={rev.ceoReview} />}
+      </div>
+    </div>
+  );
+}
+
+// ─── COO: editable scoring tab ────────────────────────────────────────────────
+interface COOScoringTabProps {
+  rev:          Review;
+  canEdit:      boolean;
+  cooTxt:       CooTxt;
+  setCooTxt:    (v: CooTxt) => void;
+  onSubmit:     () => void;
+  onDisapprove: () => void;
+}
+
+function COOScoringTab({ rev, canEdit, cooTxt, setCooTxt, onSubmit, onDisapprove }: COOScoringTabProps) {
+  const leadRev = rev.leadReview;
+  const hrRev   = rev.hrReview;
+
+  const bannerText = canEdit
+    ? 'Review the complete appraisal package. Add strategic commentary then Approve to forward to CEO or Return to HR for revision.'
+    : rev.cooReview?.decision === 'approved'
+      ? '✓ COO approved — forwarded to CEO.'
+      : rev.cooReview?.decision === 'returned'
+        ? '↩ COO returned this appraisal to HR for revision.'
+        : '⏳ COO review not yet submitted.';
+
+  const leadFields = leadRev ? [
+    { label: 'Major Strengths',       value: leadRev.text.strengths      },
+    { label: 'Areas for Improvement', value: leadRev.text.improvements   },
+    { label: 'Recommended Trainings', value: leadRev.text.trainings      },
+    { label: 'Recommendation',        value: leadRev.text.recommendation },
+  ] : [];
+
+  const hrFields = hrRev ? [
+    { label: 'HR Assessment',             value: hrRev.text.hrComments },
+    { label: 'Technical Development Plan', value: hrRev.text.techDev   },
+    { label: 'Behavioral Development Plan', value: hrRev.text.behDev  },
+    { label: 'HR Remarks',                value: hrRev.text.hrRemarks  },
+  ] : [];
+
+  return (
+    <div>
+      {/* Amber info banner */}
+      <div style={{ padding: '10px 14px', background: canEdit ? `${COO_COLOR}0c` : `${C.textDim}12`, border: `1px solid ${canEdit ? COO_COLOR + '30' : C.border}`, borderRadius: 8, marginBottom: 12, color: canEdit ? '#fcd34d' : C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+        {bannerText}
+      </div>
+
+      {/* Returned banner */}
+      {canEdit && rev.cooReview?.decision === 'returned' && (
+        <div style={{ padding: '10px 14px', background: `${C.error}0c`, border: `1px solid ${C.error}30`, borderRadius: 8, marginBottom: 12, color: '#fca5a5', fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+          ↩ This appraisal was previously returned for revision. Review the notes below before resubmitting.
+        </div>
+      )}
+
+      <div style={{ marginBottom: 16 }}>
+        <OverallCard review={rev} />
+      </div>
+
+      {leadRev && <PrevFeedback icon="👥" title="Team Lead"           color={LEAD_COLOR} date={leadRev.submittedAt} fields={leadFields} />}
+      {hrRev   && <PrevFeedback icon="🤝" title="People Lead (HR)"    color={HR_COLOR}   date={hrRev.submittedAt}  fields={hrFields}   />}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+        <Txt
+          label="Strategic Alignment Commentary"
+          value={cooTxt.strategicAlignment}
+          onChange={v => canEdit && setCooTxt({ ...cooTxt, strategicAlignment: v })}
+          readonly={!canEdit} rows={3}
+          placeholder="How does this employee's performance align with company and department strategy?"
+        />
+        <Txt
+          label="COO Recommendation & Notes"
+          value={cooTxt.cooComments}
+          onChange={v => canEdit && setCooTxt({ ...cooTxt, cooComments: v })}
+          readonly={!canEdit} rows={3}
+          placeholder="Your executive assessment, or reason for returning if disapproving…"
+        />
+      </div>
+
+      {canEdit && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, gap: 16, flexWrap: 'wrap' as const }}>
+          <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+            COO Recommendation &amp; Notes field is required for both actions.
+          </span>
+          <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+            <button
+              onClick={onDisapprove}
+              style={{ background: 'transparent', border: `2px solid ${C.error}`, borderRadius: 8, color: C.error, padding: '10px 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif', transition: 'all 0.15s' }}
+            >
+              ↩ Return to HR
+            </button>
+            <button
+              onClick={onSubmit}
+              style={{ background: C.success, border: 'none', borderRadius: 8, color: '#fff', padding: '10px 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif', transition: 'opacity 0.15s' }}
+            >
+              ✓ Approve &amp; Forward to CEO
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── COO review detail (full layout) ──────────────────────────────────────────
+function COOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
+  const [stageTab,   setStageTab]   = useState<StageTabId>('coo');
+  const [selfSubTab, setSelfSubTab] = useState<'beh' | 'fun' | 'comments'>('beh');
+
+  const { canEdit, cooTxt, setCooTxt } = ctx;
+  const statusIdx = STATUS_ORDER.indexOf(rev.status);
+
+  const dispBeh    = rev.leadReview?.behavioral ?? rev.selfReview?.behavioral ?? {};
+  const dispFun    = rev.leadReview?.functional ?? rev.selfReview?.functional ?? {};
+  const overallPct = calcOverall(dispBeh, dispFun);
+  const hasOverall = Object.keys(dispBeh).length > 0 || Object.keys(dispFun).length > 0;
+
+  function submitCOO() {
+    if (!cooTxt.cooComments.trim()) {
+      ctx.showToast('Please add your COO Recommendation & Notes before submitting.', 'error');
+      return;
+    }
+    const cooReview: COOReview = { text: cooTxt, submittedAt: today(), decision: 'approved' };
+    ctx.patch({ ...rev, status: 'coo_done', cooReview });
+    ctx.addRem(rev.id, 'ceo', `COO review complete for ${rev.employeeName}. CEO final approval required.`);
+    ctx.showToast('COO review submitted! CEO notified.', 'success');
+  }
+
+  function disapproveCOO() {
+    if (!cooTxt.cooComments.trim()) {
+      ctx.showToast('Please add your COO Recommendation & Notes before returning.', 'error');
+      return;
+    }
+    const cooReview: COOReview = {
+      text:        { ...cooTxt, disapprovalNote: cooTxt.cooComments },
+      submittedAt: today(),
+      decision:    'returned',
+    };
+    ctx.patch({ ...rev, status: 'lead_done', cooReview });
+    ctx.addRem(rev.id, 'hr', `COO has returned ${rev.employeeName}'s appraisal to HR for revision. Please review the COO's notes.`);
+    ctx.showToast("Appraisal returned to People Lead (HR) for revision.", 'error');
+  }
+
+  return (
+    <div>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+          <button onClick={goBack} style={{ background: 'transparent', border: 'none', color: COO_COLOR, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.02em' }}>
+            ← Back
+          </button>
+          {hasOverall && <Ring pct={overallPct} size={72} />}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+          <h1 style={{ color: C.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
+            {rev.employeeName}
+          </h1>
+          <StatusPill status={rev.status} />
+        </div>
+        {subtitle && (
+          <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+            {subtitle}
+          </p>
+        )}
+        <Timeline status={rev.status} />
+      </div>
+
+      <ReviewerTabBar stageTab={stageTab} setStageTab={setStageTab} activeColor={COO_COLOR} statusIdx={statusIdx} rev={rev} />
+
+      <div style={{ padding: '24px 32px' }}>
+        {stageTab === 'self' && <LeadSelfTab rev={rev} selfSubTab={selfSubTab} setSelfSubTab={setSelfSubTab} />}
+        {stageTab === 'lead' && <LeadReadonlyTab rev={rev} />}
+        {stageTab === 'hr'   && <HRReadonlyTab rev={rev} />}
+        {stageTab === 'coo'  && (
+          <COOScoringTab
+            rev={rev} canEdit={canEdit.coo}
+            cooTxt={cooTxt} setCooTxt={setCooTxt}
+            onSubmit={submitCOO} onDisapprove={disapproveCOO}
+          />
+        )}
+        {stageTab === 'ceo'  && <StageHolder stageName="CEO" stageData={rev.ceoReview} />}
+      </div>
+    </div>
+  );
+}
+
 // ─── ReviewDetail ──────────────────────────────────────────────────────────────
 export default function ReviewDetail({ ctx }: ReviewDetailProps) {
   const [activeTab, setActiveTab] = useState<'scores' | 'feedback' | 'submission'>('scores');
@@ -1221,12 +1797,12 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
     ctx.setActiveRev(null);
   }
 
-  // ── Lead reviewer path ─────────────────────────────────────────────────────
-  if (role === 'lead') {
-    return <LeadReviewDetail ctx={ctx} rev={rev} subtitle={subtitle} goBack={goBack} />;
-  }
+  // ── Reviewer paths ─────────────────────────────────────────────────────────
+  if (role === 'lead') return <LeadReviewDetail ctx={ctx} rev={rev} subtitle={subtitle} goBack={goBack} />;
+  if (role === 'hr')   return <HRReviewDetail   ctx={ctx} rev={rev} subtitle={subtitle} goBack={goBack} />;
+  if (role === 'coo')  return <COOReviewDetail  ctx={ctx} rev={rev} subtitle={subtitle} goBack={goBack} />;
 
-  // ── Other reviewer stub (HR, COO, CEO) ─────────────────────────────────────
+  // ── CEO stub (Phase 4D) ────────────────────────────────────────────────────
   if (role !== 'employee') {
     return (
       <div>
@@ -1251,7 +1827,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
           <Timeline status={rev.status} />
         </div>
         <div style={{ padding: '32px', color: C.textMuted, fontSize: 12, fontFamily: 'Montserrat, sans-serif' }}>
-          HR / COO / CEO review forms coming in Phase 4C & 4D.
+          CEO review form coming in Phase 4D.
         </div>
       </div>
     );

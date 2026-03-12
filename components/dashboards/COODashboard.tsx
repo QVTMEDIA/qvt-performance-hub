@@ -1,13 +1,27 @@
 'use client';
 
 import { AppContext } from '@/components/AppShell';
-import { C } from '@/styles/brand';
-import StatCard  from '@/components/atoms/StatCard';
-import NotifBar  from '@/components/shared/NotifBar';
-import RevRow    from '@/components/shared/RevRow';
-import RevTable  from '@/components/shared/RevTable';
+import { calcOverall, getBand } from '@/lib/scoring';
+import { C, BAND_COLORS, BANDS } from '@/styles/brand';
+import { STATUS_ORDER } from '@/lib/constants';
+import { Review } from '@/types';
+import StatCard   from '@/components/atoms/StatCard';
+import StatusPill from '@/components/atoms/StatusPill';
+import NotifBar   from '@/components/shared/NotifBar';
+import RevRow     from '@/components/shared/RevRow';
+import RevTable   from '@/components/shared/RevTable';
+import {
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 
 const COO_COLOR = '#d97706';
+
+const REC_COLORS: Record<string, string> = {
+  Promote: '#10b981',
+  Retain:  '#3b82f6',
+  PIP:     '#ef4444',
+  Review:  '#f59e0b',
+};
 
 interface COODashboardProps {
   ctx: AppContext;
@@ -37,13 +51,40 @@ function EmptySlot({ message }: { message: string }) {
   );
 }
 
+function revScore(rev: Review): number {
+  if (!rev.leadReview) return 0;
+  return calcOverall(rev.leadReview.behavioral, rev.leadReview.functional);
+}
+
 export default function COODashboard({ ctx }: COODashboardProps) {
   const { reviews, reminders, openReview, saveReminders } = ctx;
 
   const awaiting  = reviews.filter(r => r.status === 'hr_done');
-  const inProg    = reviews.filter(r => r.status === 'coo_done');
-  const approved  = reviews.filter(r => r.cooReview?.decision === 'approved');
+  const pipeline  = reviews.filter(r => !['draft', 'hr_done', 'completed'].includes(r.status));
   const completed = reviews.filter(r => r.status === 'completed');
+
+  // Scored subset (completed with lead scores)
+  const scored = completed.filter(r => r.leadReview);
+  const orgAvgPct = scored.length > 0
+    ? Math.round(scored.reduce((s, r) => s + revScore(r), 0) / scored.length)
+    : 0;
+  const orgBand = orgAvgPct > 0 ? getBand(orgAvgPct) : null;
+
+  // Top performer
+  const topRev  = scored.length > 0 ? scored.reduce((b, r) => revScore(r) > revScore(b) ? r : b) : null;
+  const topScore = topRev ? Math.round(revScore(topRev)) : 0;
+
+  // Performance distribution
+  const distData = BANDS.map(band => ({
+    band:  band.label,
+    count: scored.filter(r => getBand(revScore(r)) === band.label).length,
+    color: band.color,
+  }));
+
+  // Pipeline statuses (active, non-draft, non-awaiting-COO, non-completed)
+  const pipelineStatuses = STATUS_ORDER.filter(
+    s => !['draft', 'hr_done', 'completed'].includes(s) && pipeline.some(r => r.status === s),
+  );
 
   function handleOpen(reviewId: string) {
     const rev = reviews.find(r => r.id === reviewId);
@@ -78,12 +119,28 @@ export default function COODashboard({ ctx }: COODashboardProps) {
         {/* NotifBar */}
         <NotifBar reminders={reminders} role="coo" onOpen={handleOpen} onDismiss={handleDismiss} onMarkAllRead={handleMarkAllRead} />
 
-        {/* Stat Cards */}
+        {/* Stat Cards — Row 1 */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+          <StatCard label="Total Appraisals"      value={reviews.length} />
+          <StatCard label="Awaiting COO Review"   value={awaiting.length}  color={awaiting.length  > 0 ? COO_COLOR : C.textDim} />
+          <StatCard label="Pending in Pipeline"   value={pipeline.length}  color={pipeline.length  > 0 ? C.blue    : C.textDim} />
+          <StatCard label="Completed This Period" value={completed.length} color={completed.length > 0 ? C.success : C.textDim} />
+        </div>
+
+        {/* Stat Cards — Row 2 */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
-          <StatCard label="Total Reviews"    value={reviews.length} />
-          <StatCard label="Awaiting COO"     value={awaiting.length}  color={awaiting.length  > 0 ? COO_COLOR  : C.textDim} />
-          <StatCard label="Approved by COO"  value={approved.length}  color={approved.length  > 0 ? C.success  : C.textDim} />
-          <StatCard label="Completed"        value={completed.length} color={completed.length > 0 ? C.success  : C.textDim} />
+          <StatCard
+            label="Org Average Score"
+            value={orgAvgPct > 0 ? `${orgAvgPct}%` : '—'}
+            color={orgBand ? BAND_COLORS[orgBand] : C.textDim}
+            sub={orgBand ?? undefined}
+          />
+          <StatCard
+            label="Top Performer"
+            value={topRev ? topRev.employeeName : '—'}
+            color={topScore > 0 ? BAND_COLORS[getBand(topScore)] : C.textDim}
+            sub={topScore > 0 ? `${topScore}%` : undefined}
+          />
         </div>
 
         {/* ⚡ Awaiting COO Review */}
@@ -92,26 +149,95 @@ export default function COODashboard({ ctx }: COODashboardProps) {
           {awaiting.length === 0 ? (
             <EmptySlot message="No reviews awaiting COO assessment." />
           ) : (
-            awaiting.map(rev => (
-              <RevRow key={rev.id} review={rev} onOpen={() => openReview(rev)} ctaLabel="Review →" />
-            ))
+            awaiting.map(rev => {
+              const rec = rev.leadReview?.text?.recommendation;
+              return (
+                <div key={rev.id} style={{ marginBottom: 8 }}>
+                  <RevRow review={rev} onOpen={() => openReview(rev)} ctaLabel="Review →" />
+                  {rec && (
+                    <div style={{ marginTop: -2, paddingLeft: 12, paddingBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+                        Lead Recommendation:
+                      </span>
+                      <span style={{
+                        background: `${REC_COLORS[rec] ?? C.blue}20`,
+                        border:     `1px solid ${REC_COLORS[rec] ?? C.blue}50`,
+                        color:       REC_COLORS[rec] ?? C.blue,
+                        borderRadius: 20, padding: '2px 10px',
+                        fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif',
+                      }}>
+                        {rec}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
 
-        {/* 📋 In Progress (forwarded to CEO) */}
-        {inProg.length > 0 && (
+        {/* 📋 Active Pipeline — grouped by status */}
+        {pipeline.length > 0 && (
           <div style={{ marginBottom: 28 }}>
-            <SectionLabel label="📋 In Progress" />
-            {inProg.map(rev => (
-              <RevRow key={rev.id} review={rev} onOpen={() => openReview(rev)} ctaLabel="View" />
+            <SectionLabel label="📋 Active Pipeline" />
+            {pipelineStatuses.map(status => (
+              <div key={status} style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <StatusPill status={status} />
+                </div>
+                {pipeline.filter(r => r.status === status).map(rev => (
+                  <RevRow key={rev.id} review={rev} onOpen={() => openReview(rev)} ctaLabel="View" />
+                ))}
+              </div>
             ))}
           </div>
         )}
 
-        {/* ✅ Completed */}
+        {/* 📊 Performance Distribution — shown when 3+ scored completed */}
+        {scored.length >= 3 && (
+          <div style={{ marginBottom: 28 }}>
+            <SectionLabel label="📊 Performance Distribution" />
+            <div style={{
+              background: C.cardBg, border: `1px solid ${C.border}`,
+              borderRadius: 10, padding: '20px 16px',
+            }}>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={distData} barCategoryGap="35%">
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+                  <XAxis
+                    dataKey="band"
+                    tick={{ fill: C.textMuted, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}
+                    axisLine={{ stroke: C.border }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: C.textMuted, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={24}
+                  />
+                  <Tooltip
+                    contentStyle={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 8 }}
+                    labelStyle={{ color: C.textPrimary, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', fontSize: 12 }}
+                    itemStyle={{ color: C.textMuted, fontFamily: 'Montserrat, sans-serif', fontSize: 11 }}
+                    formatter={(v: number | undefined) => [`${v ?? 0} employee${v !== 1 ? 's' : ''}`, 'Count']}
+                  />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {distData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} fillOpacity={0.85} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ Completed Appraisals */}
         {completed.length > 0 && (
           <div>
-            <SectionLabel label="✅ Completed" />
+            <SectionLabel label="✅ Completed Appraisals" />
             <RevTable reviews={completed} onSelect={openReview} showScore />
           </div>
         )}

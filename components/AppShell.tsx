@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Role, Review, Reminder, SelfReview, LeadReview, HRReview, COOReview, CEOReview } from '@/types';
 import { getStorage, setStorage } from '@/lib/storage';
+import { fetchReviews, createReview, updateReview, fetchReminders, createReminder, updateReminder } from '@/lib/dataService';
+import { getSession, getCurrentProfile, signOut } from '@/lib/auth';
 import { ROLE_META } from '@/lib/constants';
 import { uid, today } from '@/lib/utils';
 import { C, QVT_BLUE } from '@/styles/brand';
@@ -120,23 +122,49 @@ export default function AppShell() {
   const [cooTxt,  setCooTxt]  = useState<CooTxt>(DEFAULT_COO_TXT);
   const [ceoTxt,  setCeoTxt]  = useState<CeoTxt>(DEFAULT_CEO_TXT);
 
-  // ── Load from localStorage on mount ─────────────────────────────────────────
+  // ── Load from Supabase on mount (fallback to localStorage) ──────────────────
   useEffect(() => {
-    const r = getStorage<Review[]>('reviews');
-    const n = getStorage<Reminder[]>('remind');
-    if (r) setReviews(r);
-    if (n) setReminders(n);
-    setLoaded(true);
+    async function init() {
+      const session = await getSession();
+      if (session) {
+        const profile = await getCurrentProfile();
+        if (profile) setRole(profile.role);
+      }
+      try {
+        const [revs, rems] = await Promise.all([fetchReviews(), fetchReminders()]);
+        setReviews(revs);
+        setReminders(rems);
+      } catch {
+        const r = getStorage<Review[]>('reviews');
+        const n = getStorage<Reminder[]>('remind');
+        if (r) setReviews(r);
+        if (n) setReminders(n);
+      }
+      setLoaded(true);
+    }
+    init();
   }, []);
 
   // ── Persist helpers ──────────────────────────────────────────────────────────
   const saveReviews = useCallback((r: Review[]) => {
-    setReviews(r);
+    setReviews(prev => {
+      const prevIds = new Set(prev.map(x => x.id));
+      r.filter(x => !prevIds.has(x.id)).forEach(rev => createReview(rev).catch(() => {}));
+      return r;
+    });
     setStorage('reviews', r);
   }, []);
 
   const saveReminders = useCallback((r: Reminder[]) => {
-    setReminders(r);
+    setReminders(prev => {
+      const prevMap = new Map(prev.map(x => [x.id, x]));
+      r.forEach(rem => {
+        if (!prevMap.has(rem.id)) createReminder(rem).catch(() => {});
+        else if (prevMap.get(rem.id)!.read !== rem.read)
+          updateReminder(rem.id, { read: rem.read }).catch(() => {});
+      });
+      return r;
+    });
     setStorage('remind', r);
   }, []);
 
@@ -169,6 +197,7 @@ export default function AppShell() {
       return next;
     });
     setActiveRev(updated);
+    updateReview(updated).catch(() => {});
   }, []);
 
   // ── addRem — create a reminder and persist ───────────────────────────────────
@@ -187,7 +216,14 @@ export default function AppShell() {
       setStorage('remind', next);
       return next;
     });
+    createReminder(rem).catch(() => {});
   }, [role]);
+
+  // ── signOut ──────────────────────────────────────────────────────────────────
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = '/login';
+  };
 
   // ── canEdit — derived from activeRev status + current role ───────────────────
   const canEdit: CanEdit = {
@@ -243,6 +279,7 @@ export default function AppShell() {
         reminders={reminders}
         onNav={(v) => { setView(v); setActiveRev(null); }}
         onRoleChange={handleRoleChange}
+        onSignOut={handleSignOut}
       />
       <main style={{ flex: 1, overflow: 'auto', minHeight: '100vh' }}>
         <Dashboard ctx={ctx} />

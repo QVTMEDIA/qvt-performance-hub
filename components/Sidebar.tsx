@@ -13,9 +13,10 @@ interface SidebarProps {
   reminders: Reminder[];
   onNav: (v: ViewType) => void;
   onRoleChange: (r: Role) => void;
+  onSignOut?: () => void;
 }
 
-export default function Sidebar({ role, view, reminders, onNav, onRoleChange }: SidebarProps) {
+export default function Sidebar({ role, view, reminders, onNav, onRoleChange, onSignOut }: SidebarProps) {
   const unread = reminders.filter(r => r.toRole === role && !r.read).length;
   const roleMeta = ROLE_META[role];
 
@@ -131,63 +132,97 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange }: 
         })}
       </nav>
 
-      {/* Role switcher footer */}
-      <div style={{ padding: '16px 20px', borderTop: `1px solid ${C.border}` }}>
-        <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-          Demo — Switch Role
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {ROLES.map(r => {
-            const m           = ROLE_META[r];
-            const active      = role === r;
-            const roleUnread  = reminders.filter(rem => rem.toRole === r && !rem.read).length;
-            return (
-              <button
-                key={r}
-                onClick={() => onRoleChange(r)}
-                style={{
-                  display:    'flex',
-                  alignItems: 'center',
-                  gap:        8,
-                  padding:    '6px 10px',
-                  borderRadius: 6,
-                  border:     active ? `1px solid ${m.color}40` : '1px solid transparent',
-                  background: active ? `${m.color}15` : 'transparent',
-                  cursor:     'pointer',
-                  textAlign:  'left',
-                  transition: 'background 0.15s',
-                }}
-              >
-                <span style={{ fontSize: 12 }}>{m.icon}</span>
-                <span style={{
-                  color:      active ? m.color : C.textDim,
-                  fontSize:   11,
-                  fontWeight: active ? 700 : 500,
-                  fontFamily: 'Montserrat, sans-serif',
-                }}>
-                  {m.label}
-                </span>
-                {roleUnread > 0 ? (
+      {/* Role switcher footer — dev only */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ padding: '16px 20px', borderTop: `1px solid ${C.border}` }}>
+          <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Demo — Switch Role
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {ROLES.map(r => {
+              const m           = ROLE_META[r];
+              const active      = role === r;
+              const roleUnread  = reminders.filter(rem => rem.toRole === r && !rem.read).length;
+              return (
+                <button
+                  key={r}
+                  onClick={() => onRoleChange(r)}
+                  style={{
+                    display:    'flex',
+                    alignItems: 'center',
+                    gap:        8,
+                    padding:    '6px 10px',
+                    borderRadius: 6,
+                    border:     active ? `1px solid ${m.color}40` : '1px solid transparent',
+                    background: active ? `${m.color}15` : 'transparent',
+                    cursor:     'pointer',
+                    textAlign:  'left',
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  <span style={{ fontSize: 12 }}>{m.icon}</span>
                   <span style={{
-                    marginLeft:   'auto',
-                    background:   m.color,
-                    color:        '#fff',
-                    borderRadius: 10,
-                    padding:      '1px 6px',
-                    fontSize:     10,
-                    fontWeight:   800,
-                    fontFamily:   'Montserrat, sans-serif',
+                    color:      active ? m.color : C.textDim,
+                    fontSize:   11,
+                    fontWeight: active ? 700 : 500,
+                    fontFamily: 'Montserrat, sans-serif',
                   }}>
-                    {roleUnread}
+                    {m.label}
                   </span>
-                ) : active ? (
-                  <span style={{ marginLeft: 'auto', color: m.color, fontSize: 10 }}>✓</span>
-                ) : null}
-              </button>
-            );
-          })}
+                  {roleUnread > 0 ? (
+                    <span style={{
+                      marginLeft:   'auto',
+                      background:   m.color,
+                      color:        '#fff',
+                      borderRadius: 10,
+                      padding:      '1px 6px',
+                      fontSize:     10,
+                      fontWeight:   800,
+                      fontFamily:   'Montserrat, sans-serif',
+                    }}>
+                      {roleUnread}
+                    </span>
+                  ) : active ? (
+                    <span style={{ marginLeft: 'auto', color: m.color, fontSize: 10 }}>✓</span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Sign out */}
+      {onSignOut && (
+        <div style={{ padding: '12px 20px', borderTop: `1px solid ${C.border}` }}>
+          <button
+            onClick={onSignOut}
+            style={{
+              display:    'flex',
+              alignItems: 'center',
+              gap:        8,
+              width:      '100%',
+              padding:    '8px 10px',
+              background: 'transparent',
+              border:     `1px solid ${C.border}`,
+              borderRadius: 6,
+              cursor:     'pointer',
+              transition: 'background 0.15s',
+            }}
+          >
+            <span style={{ color: C.textDim, fontSize: 13 }}>↩</span>
+            <span style={{
+              color:      C.textDim,
+              fontSize:   11,
+              fontWeight: 600,
+              fontFamily: 'Montserrat, sans-serif',
+              letterSpacing: '0.04em',
+            }}>
+              Sign Out
+            </span>
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

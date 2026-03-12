@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { Review } from '@/types';
 import { calcOverall } from '@/lib/scoring';
-import { C, QVT_BLUE, BAND_COLORS } from '@/styles/brand';
+import { QVT_BLUE, BAND_COLORS } from '@/styles/brand';
 import { getBand } from '@/lib/scoring';
+import { useTheme } from '@/lib/ThemeContext';
 import StatusPill from '@/components/atoms/StatusPill';
 
 interface RevTableProps {
@@ -24,6 +25,7 @@ function getScore(rev: Review): number {
 }
 
 export default function RevTable({ reviews, onSelect, showScore = false }: RevTableProps) {
+  const { theme } = useTheme();
   const [sortField, setSortField] = useState<SortField>('status');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [hovered, setHovered] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export default function RevTable({ reviews, onSelect, showScore = false }: RevTa
 
   const thStyle: React.CSSProperties = {
     padding: '9px 16px',
-    color: C.textDim,
+    color: theme.textDim,
     fontSize: 10,
     fontWeight: 700,
     letterSpacing: '0.08em',
@@ -63,7 +65,7 @@ export default function RevTable({ reviews, onSelect, showScore = false }: RevTa
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <span style={{ color: C.border, marginLeft: 4 }}>↕</span>;
+    if (sortField !== field) return <span style={{ color: theme.border, marginLeft: 4 }}>↕</span>;
     return <span style={{ color: QVT_BLUE, marginLeft: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
   };
 
@@ -73,11 +75,11 @@ export default function RevTable({ reviews, onSelect, showScore = false }: RevTa
         style={{
           padding: '40px 24px',
           textAlign: 'center',
-          color: C.textDim,
+          color: theme.textDim,
           fontSize: 12,
           fontFamily: 'Montserrat, sans-serif',
-          background: C.cardBg,
-          border: `1px solid ${C.border}`,
+          background: theme.card,
+          border: `1px solid ${theme.border}`,
           borderRadius: 10,
         }}
       >
@@ -87,164 +89,167 @@ export default function RevTable({ reviews, onSelect, showScore = false }: RevTa
   }
 
   return (
-    <div
-      style={{
-        border: `1px solid ${C.border}`,
-        borderRadius: 10,
-        overflow: 'hidden',
-        background: C.cardBg,
-      }}
-    >
-      {/* Header row */}
+    <div style={{ overflowX: 'auto' }}>
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: showScore
-            ? '1fr 110px 90px 80px 80px 80px'
-            : '1fr 110px 90px 80px 80px',
-          background: `${C.sidebarBg}80`,
-          borderBottom: `1px solid ${C.border}`,
+          border: `1px solid ${theme.border}`,
+          borderRadius: 10,
+          overflow: 'hidden',
+          background: theme.card,
+          minWidth: 480,
         }}
       >
-        <button style={thStyle} onClick={() => handleSort('name')}>
-          Employee <SortIcon field="name" />
-        </button>
-        <button style={thStyle} onClick={() => handleSort('status')}>
-          Status <SortIcon field="status" />
-        </button>
-        <button style={thStyle} onClick={() => handleSort('period')}>
-          Period <SortIcon field="period" />
-        </button>
-        <button style={{ ...thStyle, textAlign: 'left' }}>Department</button>
-        {showScore && (
-          <button style={thStyle} onClick={() => handleSort('score')}>
-            Score <SortIcon field="score" />
+        {/* Header row */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: showScore
+              ? '1fr 110px 90px 80px 80px 80px'
+              : '1fr 110px 90px 80px 80px',
+            background: `${theme.sidebar}80`,
+            borderBottom: `1px solid ${theme.border}`,
+          }}
+        >
+          <button style={thStyle} onClick={() => handleSort('name')}>
+            Employee <SortIcon field="name" />
           </button>
-        )}
-        <button style={{ ...thStyle, cursor: 'default' }}>Created</button>
-      </div>
+          <button style={thStyle} onClick={() => handleSort('status')}>
+            Status <SortIcon field="status" />
+          </button>
+          <button style={thStyle} onClick={() => handleSort('period')}>
+            Period <SortIcon field="period" />
+          </button>
+          <button style={{ ...thStyle, textAlign: 'left' }}>Department</button>
+          {showScore && (
+            <button style={thStyle} onClick={() => handleSort('score')}>
+              Score <SortIcon field="score" />
+            </button>
+          )}
+          <button style={{ ...thStyle, cursor: 'default' }}>Created</button>
+        </div>
 
-      {/* Data rows */}
-      {sorted.map((rev, i) => {
-        const score = getScore(rev);
-        const isHov = hovered === rev.id;
-        const isLast = i === sorted.length - 1;
+        {/* Data rows */}
+        {sorted.map((rev, i) => {
+          const score = getScore(rev);
+          const isHov = hovered === rev.id;
+          const isLast = i === sorted.length - 1;
 
-        return (
-          <div
-            key={rev.id}
-            onClick={() => onSelect(rev)}
-            onMouseEnter={() => setHovered(rev.id)}
-            onMouseLeave={() => setHovered(null)}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: showScore
-                ? '1fr 110px 90px 80px 80px 80px'
-                : '1fr 110px 90px 80px 80px',
-              alignItems: 'center',
-              background: isHov ? `${QVT_BLUE}10` : i % 2 === 0 ? C.cardBg : `${C.sidebarBg}40`,
-              borderBottom: isLast ? 'none' : `1px solid ${C.border}`,
-              cursor: 'pointer',
-              transition: 'background 0.12s',
-            }}
-          >
-            {/* Name + title */}
-            <div style={{ padding: '11px 16px' }}>
-              <div
-                style={{
-                  color: isHov ? C.textPrimary : C.textSecondary,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  fontFamily: 'Montserrat, sans-serif',
-                }}
-              >
-                {rev.employeeName || '—'}
-              </div>
-              {rev.jobTitle && (
+          return (
+            <div
+              key={rev.id}
+              onClick={() => onSelect(rev)}
+              onMouseEnter={() => setHovered(rev.id)}
+              onMouseLeave={() => setHovered(null)}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: showScore
+                  ? '1fr 110px 90px 80px 80px 80px'
+                  : '1fr 110px 90px 80px 80px',
+                alignItems: 'center',
+                background: isHov ? `${QVT_BLUE}10` : i % 2 === 0 ? theme.card : `${theme.sidebar}40`,
+                borderBottom: isLast ? 'none' : `1px solid ${theme.border}`,
+                cursor: 'pointer',
+                transition: 'background 0.12s',
+              }}
+            >
+              {/* Name + title */}
+              <div style={{ padding: '11px 16px' }}>
                 <div
                   style={{
-                    color: C.textDim,
-                    fontSize: 10,
-                    fontWeight: 500,
+                    color: isHov ? theme.textPrimary : theme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: 700,
                     fontFamily: 'Montserrat, sans-serif',
-                    marginTop: 1,
                   }}
                 >
-                  {rev.jobTitle}
+                  {rev.employeeName || '—'}
                 </div>
-              )}
-            </div>
-
-            {/* Status */}
-            <div style={{ padding: '8px 16px' }}>
-              <StatusPill status={rev.status} />
-            </div>
-
-            {/* Period */}
-            <div
-              style={{
-                padding: '8px 16px',
-                color: C.textMuted,
-                fontSize: 11,
-                fontFamily: 'Montserrat, sans-serif',
-                fontWeight: 500,
-              }}
-            >
-              {rev.period}
-            </div>
-
-            {/* Department */}
-            <div
-              style={{
-                padding: '8px 16px',
-                color: C.textDim,
-                fontSize: 11,
-                fontFamily: 'Montserrat, sans-serif',
-                fontWeight: 500,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {rev.department || '—'}
-            </div>
-
-            {/* Score (optional) */}
-            {showScore && (
-              <div style={{ padding: '8px 16px' }}>
-                {score >= 0 ? (
-                  <span
+                {rev.jobTitle && (
+                  <div
                     style={{
-                      color: BAND_COLORS[getBand(score)],
-                      fontSize: 13,
-                      fontWeight: 800,
+                      color: theme.textDim,
+                      fontSize: 10,
+                      fontWeight: 500,
                       fontFamily: 'Montserrat, sans-serif',
+                      marginTop: 1,
                     }}
                   >
-                    {Math.round(score)}%
-                  </span>
-                ) : (
-                  <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>—</span>
+                    {rev.jobTitle}
+                  </div>
                 )}
               </div>
-            )}
 
-            {/* Created date */}
-            <div
-              style={{
-                padding: '8px 16px',
-                color: C.textDim,
-                fontSize: 11,
-                fontFamily: 'Montserrat, sans-serif',
-                fontWeight: 500,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {rev.createdAt}
+              {/* Status */}
+              <div style={{ padding: '8px 16px' }}>
+                <StatusPill status={rev.status} />
+              </div>
+
+              {/* Period */}
+              <div
+                style={{
+                  padding: '8px 16px',
+                  color: theme.textMuted,
+                  fontSize: 11,
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 500,
+                }}
+              >
+                {rev.period}
+              </div>
+
+              {/* Department */}
+              <div
+                style={{
+                  padding: '8px 16px',
+                  color: theme.textDim,
+                  fontSize: 11,
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {rev.department || '—'}
+              </div>
+
+              {/* Score (optional) */}
+              {showScore && (
+                <div style={{ padding: '8px 16px' }}>
+                  {score >= 0 ? (
+                    <span
+                      style={{
+                        color: BAND_COLORS[getBand(score)],
+                        fontSize: 13,
+                        fontWeight: 800,
+                        fontFamily: 'Montserrat, sans-serif',
+                      }}
+                    >
+                      {Math.round(score)}%
+                    </span>
+                  ) : (
+                    <span style={{ color: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>—</span>
+                  )}
+                </div>
+              )}
+
+              {/* Created date */}
+              <div
+                style={{
+                  padding: '8px 16px',
+                  color: theme.textDim,
+                  fontSize: 11,
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {rev.createdAt}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -1,8 +1,10 @@
 'use client';
 
 import { AppContext } from '@/components/AppShell';
-import { C, QVT_BLUE } from '@/styles/brand';
+import { QVT_BLUE, C } from '@/styles/brand';
 import { ROLE_META, STAGE_META } from '@/lib/constants';
+import { useTheme } from '@/lib/ThemeContext';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import EmployeeDashboard from '@/components/dashboards/EmployeeDashboard';
 import LeadDashboard from '@/components/dashboards/LeadDashboard';
 import HRDashboard from '@/components/dashboards/HRDashboard';
@@ -16,30 +18,33 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ ctx }: DashboardProps) {
+  const { theme } = useTheme();
   const { role, reviews, view, setView } = ctx;
   const roleMeta = ROLE_META[role];
 
   // ── Employee dashboard ────────────────────────────────────────────────────────
   if (role === 'employee' && view === 'dashboard') {
     return (
-      <EmployeeDashboard
-        reviews={ctx.reviews}
-        reminders={ctx.reminders}
-        empName={ctx.empName}
-        setEmpName={ctx.setEmpName}
-        openReview={ctx.openReview}
-        saveReviews={ctx.saveReviews}
-        saveReminders={ctx.saveReminders}
-        showToast={ctx.showToast}
-      />
+      <ErrorBoundary>
+        <EmployeeDashboard
+          reviews={ctx.reviews}
+          reminders={ctx.reminders}
+          empName={ctx.empName}
+          setEmpName={ctx.setEmpName}
+          openReview={ctx.openReview}
+          saveReviews={ctx.saveReviews}
+          saveReminders={ctx.saveReminders}
+          showToast={ctx.showToast}
+        />
+      </ErrorBoundary>
     );
   }
 
   // ── Reviewer dashboards ───────────────────────────────────────────────────────
-  if (role === 'lead' && view === 'dashboard') return <LeadDashboard ctx={ctx} />;
-  if (role === 'hr'   && view === 'dashboard') return <HRDashboard  ctx={ctx} />;
-  if (role === 'coo'  && view === 'dashboard') return <COODashboard ctx={ctx} />;
-  if (role === 'ceo'  && view === 'dashboard') return <CEODashboard ctx={ctx} />;
+  if (role === 'lead' && view === 'dashboard') return <ErrorBoundary><LeadDashboard ctx={ctx} /></ErrorBoundary>;
+  if (role === 'hr'   && view === 'dashboard') return <ErrorBoundary><HRDashboard  ctx={ctx} /></ErrorBoundary>;
+  if (role === 'coo'  && view === 'dashboard') return <ErrorBoundary><COODashboard ctx={ctx} /></ErrorBoundary>;
+  if (role === 'ceo'  && view === 'dashboard') return <ErrorBoundary><CEODashboard ctx={ctx} /></ErrorBoundary>;
 
   // ── New Appraisal — reviewer roles ──────────────────────────────────────────
   if (role !== 'employee' && view === 'new') return <NewReview ctx={ctx} />;
@@ -48,16 +53,16 @@ export default function Dashboard({ ctx }: DashboardProps) {
   const Header = () => (
     <div style={{
       padding: '20px 32px 16px',
-      borderBottom: `1px solid ${C.border}`,
+      borderBottom: `1px solid ${theme.border}`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
     }}>
       <div>
-        <h1 style={{ color: C.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0 }}>
+        <h1 style={{ color: theme.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0 }}>
           {view === 'dashboard' ? `${roleMeta.label} Dashboard` : 'New Appraisal'}
         </h1>
-        <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '4px 0 0' }}>
+        <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '4px 0 0' }}>
           QVT Media Performance Hub · {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
@@ -91,11 +96,11 @@ export default function Dashboard({ ctx }: DashboardProps) {
       alignItems: 'center',
       justifyContent: 'center',
       padding: 64,
-      color: C.textMuted,
+      color: theme.textMuted,
       textAlign: 'center',
     }}>
       <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>📋</div>
-      <h3 style={{ color: C.textSecondary, fontSize: 15, fontWeight: 700, margin: '0 0 8px' }}>
+      <h3 style={{ color: theme.textSecondary, fontSize: 15, fontWeight: 700, margin: '0 0 8px' }}>
         No appraisals yet
       </h3>
       <p style={{ fontSize: 12, fontWeight: 500, maxWidth: 280, lineHeight: 1.6 }}>
@@ -112,16 +117,16 @@ export default function Dashboard({ ctx }: DashboardProps) {
   const inProgress = reviews.filter(r => r.status !== 'completed' && r.status !== 'draft').length;
   const draft = reviews.filter(r => r.status === 'draft').length;
 
-  const StatCard = ({ label, value, color }: { label: string; value: number; color: string }) => (
+  const StatCardLocal = ({ label, value, color }: { label: string; value: number; color: string }) => (
     <div style={{
-      background: C.cardBg,
-      border: `1px solid ${C.border}`,
+      background: theme.card,
+      border: `1px solid ${theme.border}`,
       borderRadius: 10,
       padding: '16px 20px',
       flex: 1,
       minWidth: 120,
     }}>
-      <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+      <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
         {label}
       </div>
       <div style={{ color, fontSize: 28, fontWeight: 800 }}>{value}</div>
@@ -139,19 +144,19 @@ export default function Dashboard({ ctx }: DashboardProps) {
           alignItems: 'center',
           gap: 16,
           padding: '12px 20px',
-          background: C.cardBg,
-          border: `1px solid ${C.border}`,
+          background: theme.card,
+          border: `1px solid ${theme.border}`,
           borderRadius: 8,
           cursor: 'pointer',
           marginBottom: 8,
           transition: 'border-color 0.15s',
         }}
         onMouseEnter={e => (e.currentTarget.style.borderColor = QVT_BLUE)}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = theme.border)}
       >
         <div style={{ flex: 1 }}>
-          <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 700 }}>{rev.employeeName || '—'}</div>
-          <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 500, marginTop: 2 }}>
+          <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 700 }}>{rev.employeeName || '—'}</div>
+          <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 500, marginTop: 2 }}>
             {rev.jobTitle || 'No title'} · {rev.period}
           </div>
         </div>
@@ -169,13 +174,10 @@ export default function Dashboard({ ctx }: DashboardProps) {
         }}>
           {stage.label}
         </div>
-        <div style={{ color: C.textDim, fontSize: 11 }}>{rev.createdAt}</div>
+        <div style={{ color: theme.textDim, fontSize: 11 }}>{rev.createdAt}</div>
       </div>
     );
   };
-
-  // employee 'new' falls through to the generic review list below
-  // (employees create appraisals from their own dashboard self-start form)
 
   if (view === 'review' && ctx.activeRev) {
     return <ReviewDetail ctx={ctx} />;
@@ -187,14 +189,14 @@ export default function Dashboard({ ctx }: DashboardProps) {
       <div style={{ padding: '24px 32px' }}>
         {/* Stat cards */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-          <StatCard label="Total Appraisals" value={total} color={C.textPrimary} />
-          <StatCard label="In Progress" value={inProgress} color={C.blue} />
-          <StatCard label="Draft" value={draft} color={C.textMuted} />
-          <StatCard label="Completed" value={completed} color={C.success} />
+          <StatCardLocal label="Total Appraisals" value={total} color={theme.textPrimary} />
+          <StatCardLocal label="In Progress" value={inProgress} color={C.blue} />
+          <StatCardLocal label="Draft" value={draft} color={theme.textMuted} />
+          <StatCardLocal label="Completed" value={completed} color={C.success} />
         </div>
 
         {/* Reviews list */}
-        <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+        <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
           All Appraisals
         </div>
 

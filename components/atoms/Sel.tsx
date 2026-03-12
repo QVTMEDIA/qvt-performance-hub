@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { C, QVT_BLUE } from '@/styles/brand';
+import { QVT_BLUE } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface SelOption {
   v: string;
@@ -18,13 +19,14 @@ interface SelProps {
 }
 
 export default function Sel({ label, value, onChange, options, disabled = false, placeholder }: SelProps) {
+  const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <label
         style={{
-          color: C.textDim,
+          color: theme.textDim,
           fontSize: 10,
           fontWeight: 700,
           letterSpacing: '0.08em',
@@ -41,17 +43,16 @@ export default function Sel({ label, value, onChange, options, disabled = false,
         onBlur={() => setFocused(false)}
         disabled={disabled}
         style={{
-          background: C.cardBg,
-          border: `1px solid ${focused ? QVT_BLUE : C.border}`,
+          background: theme.input,
+          border: `1px solid ${focused ? QVT_BLUE : theme.inputBorder}`,
           borderRadius: 6,
           padding: '9px 12px',
-          color: value ? C.textPrimary : C.textMuted,
+          color: value ? theme.textPrimary : theme.textMuted,
           fontSize: 12,
           fontWeight: 500,
           fontFamily: 'Montserrat, sans-serif',
           outline: 'none',
           transition: 'border-color 0.15s',
-          colorScheme: 'dark',
           cursor: disabled ? 'default' : 'pointer',
           width: '100%',
           boxSizing: 'border-box',
@@ -69,7 +70,7 @@ export default function Sel({ label, value, onChange, options, disabled = false,
           </option>
         )}
         {options.map((opt) => (
-          <option key={opt.v} value={opt.v} style={{ background: C.cardBg, color: C.textPrimary }}>
+          <option key={opt.v} value={opt.v} style={{ background: theme.input, color: theme.textPrimary }}>
             {opt.l}
           </option>
         ))}

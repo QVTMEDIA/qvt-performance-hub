@@ -1,7 +1,8 @@
 'use client';
 
 import { Competency } from '@/lib/constants';
-import { SC_COLORS, C } from '@/styles/brand';
+import { SC_COLORS } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface CompareTableProps {
   title: string;
@@ -10,8 +11,8 @@ interface CompareTableProps {
   agreedScores: Record<string, number>;
 }
 
-function ScoreBadge({ val }: { val: number | undefined }) {
-  if (!val) return <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>—</span>;
+function ScoreBadge({ val, textDim }: { val: number | undefined; textDim: string }) {
+  if (!val) return <span style={{ color: textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>—</span>;
   const color = SC_COLORS[val];
   return (
     <span
@@ -35,9 +36,9 @@ function ScoreBadge({ val }: { val: number | undefined }) {
   );
 }
 
-function GapBadge({ gap }: { gap: number }) {
+function GapBadge({ gap, textDim }: { gap: number; textDim: string }) {
   if (gap === 0) {
-    return <span style={{ color: C.textDim, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>0</span>;
+    return <span style={{ color: textDim, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>0</span>;
   }
   const color = gap > 0 ? '#22c55e' : '#ef4444';
   return (
@@ -48,8 +49,10 @@ function GapBadge({ gap }: { gap: number }) {
 }
 
 export default function CompareTable({ title, comps, selfScores, agreedScores }: CompareTableProps) {
+  const { theme } = useTheme();
+
   const colHead: React.CSSProperties = {
-    color: C.textDim,
+    color: theme.textDim,
     fontSize: 10,
     fontWeight: 700,
     letterSpacing: '0.08em',
@@ -65,14 +68,14 @@ export default function CompareTable({ title, comps, selfScores, agreedScores }:
       <div
         style={{
           padding: '10px 16px',
-          background: `${C.textDim}18`,
+          background: `${theme.textDim}18`,
           borderRadius: '8px 8px 0 0',
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${theme.border}`,
         }}
       >
         <span
           style={{
-            color: C.textPrimary,
+            color: theme.textPrimary,
             fontSize: 12,
             fontWeight: 800,
             fontFamily: 'Montserrat, sans-serif',
@@ -85,7 +88,7 @@ export default function CompareTable({ title, comps, selfScores, agreedScores }:
       {/* Table */}
       <div
         style={{
-          border: `1px solid ${C.border}`,
+          border: `1px solid ${theme.border}`,
           borderTop: 'none',
           borderRadius: '0 0 8px 8px',
           overflow: 'hidden',
@@ -96,8 +99,8 @@ export default function CompareTable({ title, comps, selfScores, agreedScores }:
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 90px 90px 70px',
-            background: `${C.sidebarBg}80`,
-            borderBottom: `1px solid ${C.border}`,
+            background: `${theme.sidebar}80`,
+            borderBottom: `1px solid ${theme.border}`,
           }}
         >
           <div style={{ ...colHead, textAlign: 'left' }}>Competency</div>
@@ -120,14 +123,14 @@ export default function CompareTable({ title, comps, selfScores, agreedScores }:
                 display: 'grid',
                 gridTemplateColumns: '1fr 90px 90px 70px',
                 alignItems: 'center',
-                background: i % 2 === 0 ? C.cardBg : `${C.sidebarBg}60`,
-                borderBottom: isLast ? 'none' : `1px solid ${C.border}`,
+                background: i % 2 === 0 ? theme.card : `${theme.sidebar}60`,
+                borderBottom: isLast ? 'none' : `1px solid ${theme.border}`,
               }}
             >
               <div style={{ padding: '10px 16px' }}>
                 <div
                   style={{
-                    color: C.textPrimary,
+                    color: theme.textPrimary,
                     fontSize: 12,
                     fontWeight: 600,
                     fontFamily: 'Montserrat, sans-serif',
@@ -137,16 +140,16 @@ export default function CompareTable({ title, comps, selfScores, agreedScores }:
                 </div>
               </div>
               <div style={{ textAlign: 'center', padding: '8px 12px' }}>
-                <ScoreBadge val={self} />
+                <ScoreBadge val={self} textDim={theme.textDim} />
               </div>
               <div style={{ textAlign: 'center', padding: '8px 12px' }}>
-                <ScoreBadge val={agreed} />
+                <ScoreBadge val={agreed} textDim={theme.textDim} />
               </div>
               <div style={{ textAlign: 'center', padding: '8px 12px' }}>
                 {self !== undefined && agreed !== undefined ? (
-                  <GapBadge gap={gap} />
+                  <GapBadge gap={gap} textDim={theme.textDim} />
                 ) : (
-                  <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>—</span>
+                  <span style={{ color: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>—</span>
                 )}
               </div>
             </div>

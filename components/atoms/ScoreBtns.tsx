@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { SC_COLORS, SC_LABELS, C } from '@/styles/brand';
+import { SC_COLORS, SC_LABELS } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface ScoreBtnsProps {
   val: number | undefined;
@@ -10,6 +11,7 @@ interface ScoreBtnsProps {
 }
 
 export default function ScoreBtns({ val, onChange, disabled = false }: ScoreBtnsProps) {
+  const { theme } = useTheme();
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
@@ -41,7 +43,7 @@ export default function ScoreBtns({ val, onChange, disabled = false }: ScoreBtns
                 : isHov
                 ? `${color}20`
                 : 'transparent',
-              color: isActive ? '#fff' : isHov ? color : C.textDim,
+              color: isActive ? '#fff' : isHov ? color : theme.textDim,
               fontSize: 11,
               fontWeight: 800,
               cursor: disabled ? 'default' : 'pointer',

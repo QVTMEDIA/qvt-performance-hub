@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { Review } from '@/types';
 import { calcOverall } from '@/lib/scoring';
-import { C, QVT_BLUE } from '@/styles/brand';
+import { QVT_BLUE } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 import Ring from '@/components/atoms/Ring';
 import StatusPill from '@/components/atoms/StatusPill';
 import MiniProgress from '@/components/atoms/MiniProgress';
@@ -22,6 +23,7 @@ function getScore(rev: Review): number {
 }
 
 export default function RevRow({ review, onOpen, ctaLabel = 'Open Review' }: RevRowProps) {
+  const { theme } = useTheme();
   const [hovered, setHovered] = useState(false);
   const score = getScore(review);
 
@@ -34,8 +36,8 @@ export default function RevRow({ review, onOpen, ctaLabel = 'Open Review' }: Rev
         alignItems: 'center',
         gap: 16,
         padding: '14px 20px',
-        background: hovered ? `${QVT_BLUE}0d` : C.cardBg,
-        border: `1px solid ${hovered ? QVT_BLUE : C.border}`,
+        background: hovered ? `${QVT_BLUE}0d` : theme.card,
+        border: `1px solid ${hovered ? QVT_BLUE : theme.border}`,
         borderRadius: 10,
         transition: 'all 0.15s ease',
         marginBottom: 8,
@@ -48,7 +50,7 @@ export default function RevRow({ review, onOpen, ctaLabel = 'Open Review' }: Rev
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            color: C.textPrimary,
+            color: theme.textPrimary,
             fontSize: 14,
             fontWeight: 700,
             fontFamily: 'Montserrat, sans-serif',
@@ -64,7 +66,7 @@ export default function RevRow({ review, onOpen, ctaLabel = 'Open Review' }: Rev
           {review.jobTitle && (
             <span
               style={{
-                color: C.textMuted,
+                color: theme.textMuted,
                 fontSize: 11,
                 fontWeight: 600,
                 fontFamily: 'Montserrat, sans-serif',
@@ -76,7 +78,7 @@ export default function RevRow({ review, onOpen, ctaLabel = 'Open Review' }: Rev
           {review.department && (
             <span
               style={{
-                color: C.textDim,
+                color: theme.textDim,
                 fontSize: 11,
                 fontWeight: 500,
                 fontFamily: 'Montserrat, sans-serif',
@@ -87,7 +89,7 @@ export default function RevRow({ review, onOpen, ctaLabel = 'Open Review' }: Rev
           )}
           <span
             style={{
-              color: C.textDim,
+              color: theme.textDim,
               fontSize: 11,
               fontWeight: 500,
               fontFamily: 'Montserrat, sans-serif',
@@ -110,9 +112,9 @@ export default function RevRow({ review, onOpen, ctaLabel = 'Open Review' }: Rev
           onClick={onOpen}
           style={{
             background: hovered ? QVT_BLUE : 'transparent',
-            border: `1px solid ${hovered ? QVT_BLUE : C.border}`,
+            border: `1px solid ${hovered ? QVT_BLUE : theme.border}`,
             borderRadius: 6,
-            color: hovered ? '#fff' : C.textMuted,
+            color: hovered ? '#fff' : theme.textMuted,
             fontSize: 11,
             fontWeight: 700,
             cursor: 'pointer',

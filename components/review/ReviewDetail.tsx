@@ -7,6 +7,8 @@ import { BEHAVIORAL, FUNCTIONAL, STAGE_META, STATUS_ORDER, Competency } from '@/
 import { calcSec, calcOverall, getBand } from '@/lib/scoring';
 import { BAND_COLORS, BANDS, C, QVT_BLUE, SC_COLORS, SC_LABELS } from '@/styles/brand';
 import { today } from '@/lib/utils';
+import { useTheme } from '@/lib/ThemeContext';
+import { exportAppraisalPDF } from '@/lib/exportPDF';
 import Ring from '@/components/atoms/Ring';
 import StatusPill from '@/components/atoms/StatusPill';
 import Txt from '@/components/atoms/Txt';
@@ -57,6 +59,7 @@ function ReviewerTabBar({
   statusIdx:   number;
   rev:         Review;
 }) {
+  const { theme } = useTheme();
   const tabs = [
     { id: 'self' as StageTabId, icon: '👤', label: 'Self-Review' },
     { id: 'lead' as StageTabId, icon: '👥', label: 'Team Lead' },
@@ -65,7 +68,7 @@ function ReviewerTabBar({
     { id: 'ceo'  as StageTabId, icon: '🎯', label: 'CEO' },
   ];
   return (
-    <div style={{ padding: '0 32px', borderBottom: `1px solid ${C.border}`, display: 'flex', overflowX: 'auto' as const }}>
+    <div style={{ padding: '0 32px', borderBottom: `1px solid ${theme.border}`, display: 'flex', overflowX: 'auto' as const }}>
       {tabs.map(tab => {
         const locked   = stageIsLocked(statusIdx, tab.id, rev);
         const done     = stageIsDone(rev, tab.id);
@@ -79,7 +82,7 @@ function ReviewerTabBar({
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'transparent', border: 'none',
               borderBottom: `2px solid ${isActive && !locked ? activeColor : 'transparent'}`,
-              color: locked ? C.textDim : isActive ? C.textPrimary : C.textMuted,
+              color: locked ? theme.textDim : isActive ? theme.textPrimary : theme.textMuted,
               padding: '12px 16px', fontSize: 12, fontWeight: 700,
               cursor: locked ? 'not-allowed' : 'pointer',
               fontFamily: 'Montserrat, sans-serif', opacity: locked ? 0.4 : 1,
@@ -111,6 +114,7 @@ interface ScoreBtnRowProps {
 }
 
 function ScoreBtnRow({ score, onScore }: ScoreBtnRowProps) {
+  const { theme } = useTheme();
   const [hovBtn, setHovBtn] = useState<number | null>(null);
   return (
     <div style={{ display: 'flex', gap: 6 }}>
@@ -128,8 +132,8 @@ function ScoreBtnRow({ score, onScore }: ScoreBtnRowProps) {
               height:         36,
               borderRadius:   8,
               background:     isSel ? `${SC_COLORS[n]}28` : isHov ? `${SC_COLORS[n]}12` : 'transparent',
-              border:         `2px solid ${isSel || isHov ? SC_COLORS[n] : C.border}`,
-              color:          isSel || isHov ? SC_COLORS[n] : C.textDim,
+              border:         `2px solid ${isSel || isHov ? SC_COLORS[n] : theme.border}`,
+              color:          isSel || isHov ? SC_COLORS[n] : theme.textDim,
               fontSize:       13,
               fontWeight:     800,
               cursor:         'pointer',
@@ -160,6 +164,7 @@ interface CompRowProps {
 }
 
 function CompRow({ comp, score, onScore, isOdd, isLast }: CompRowProps) {
+  const { theme } = useTheme();
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -170,8 +175,8 @@ function CompRow({ comp, score, onScore, isOdd, isLast }: CompRowProps) {
         alignItems:   'center',
         gap:          16,
         padding:      '12px 20px',
-        background:   hovered ? `${QVT_BLUE}0a` : isOdd ? '#040e18' : C.cardBg,
-        borderBottom: isLast ? 'none' : `1px solid ${C.border}`,
+        background:   hovered ? `${QVT_BLUE}0a` : isOdd ? '#040e18' : theme.card,
+        borderBottom: isLast ? 'none' : `1px solid ${theme.border}`,
         transition:   'background 0.12s',
       }}
     >
@@ -181,9 +186,9 @@ function CompRow({ comp, score, onScore, isOdd, isLast }: CompRowProps) {
             width:          28,
             height:         28,
             borderRadius:   '50%',
-            background:     score ? `${SC_COLORS[score]}20` : C.sidebarBg,
-            border:         `2px solid ${score ? SC_COLORS[score] : C.border}`,
-            color:          score ? SC_COLORS[score] : C.textDim,
+            background:     score ? `${SC_COLORS[score]}20` : theme.sidebar,
+            border:         `2px solid ${score ? SC_COLORS[score] : theme.border}`,
+            color:          score ? SC_COLORS[score] : theme.textDim,
             fontSize:       score ? 12 : 16,
             fontWeight:     800,
             display:        'flex',
@@ -197,10 +202,10 @@ function CompRow({ comp, score, onScore, isOdd, isLast }: CompRowProps) {
           {score ?? '·'}
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.3 }}>
+          <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.3 }}>
             {comp.label}
           </div>
-          <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2, lineHeight: 1.4 }}>
+          <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2, lineHeight: 1.4 }}>
             {comp.description}
           </div>
         </div>
@@ -228,13 +233,14 @@ interface AssessmentSectionProps {
 }
 
 function AssessmentSection({ part, title, badgeColor, comps, scores, onScore }: AssessmentSectionProps) {
+  const { theme } = useTheme();
   const scored = Object.keys(scores).length;
   const sum    = Object.values(scores).reduce((a, b) => a + b, 0);
   const pct    = calcSec(scores);
 
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+      <div style={{ border: `1px solid ${theme.border}`, borderRadius: 10, overflow: 'hidden' }}>
         {/* Header */}
         <div
           style={{
@@ -243,7 +249,7 @@ function AssessmentSection({ part, title, badgeColor, comps, scores, onScore }: 
             justifyContent: 'space-between',
             padding:        '12px 20px',
             background:     '#040e18',
-            borderBottom:   `1px solid ${C.border}`,
+            borderBottom:   `1px solid ${theme.border}`,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -264,10 +270,10 @@ function AssessmentSection({ part, title, badgeColor, comps, scores, onScore }: 
               PART {part}
             </span>
             <div>
-              <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+              <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
                 {title}
               </div>
-              <div style={{ color: C.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
+              <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
                 10 competencies · 5 points each · 50% of overall score
               </div>
             </div>
@@ -300,19 +306,19 @@ function AssessmentSection({ part, title, badgeColor, comps, scores, onScore }: 
             gap:            8,
             padding:        '10px 20px',
             background:     '#040e18',
-            borderTop:      `1px solid ${C.border}`,
+            borderTop:      `1px solid ${theme.border}`,
           }}
         >
-          <span style={{ color: C.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+          <span style={{ color: theme.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
             {title} subtotal:
           </span>
-          <span style={{ color: C.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
+          <span style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
             {sum} / 50 pts
           </span>
-          <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>=</span>
+          <span style={{ color: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>=</span>
           <span
             style={{
-              color:      scored > 0 ? BAND_COLORS[getBand(pct)] : C.textDim,
+              color:      scored > 0 ? BAND_COLORS[getBand(pct)] : theme.textDim,
               fontSize:   13,
               fontWeight: 800,
               fontFamily: 'Montserrat, sans-serif',
@@ -328,11 +334,12 @@ function AssessmentSection({ part, title, badgeColor, comps, scores, onScore }: 
 
 // ─── Feedback field helper ─────────────────────────────────────────────────────
 function FeedbackField({ label, value }: { label: string; value: string }) {
+  const { theme } = useTheme();
   return (
     <div>
       <div
         style={{
-          color:         C.textDim,
+          color:         theme.textDim,
           fontSize:      10,
           fontWeight:    700,
           textTransform: 'uppercase',
@@ -345,7 +352,7 @@ function FeedbackField({ label, value }: { label: string; value: string }) {
       </div>
       <div
         style={{
-          color:      C.textPrimary,
+          color:      theme.textPrimary,
           fontSize:   12,
           fontWeight: 500,
           fontFamily: 'Montserrat, sans-serif',
@@ -360,6 +367,7 @@ function FeedbackField({ label, value }: { label: string; value: string }) {
 
 // ─── My Scores tab ────────────────────────────────────────────────────────────
 function MyScoresTab({ review }: { review: Review }) {
+  const { theme } = useTheme();
   const [secTab, setSecTab] = useState<'beh' | 'fun'>('beh');
 
   const selfBeh   = review.selfReview?.behavioral ?? {};
@@ -388,7 +396,7 @@ function MyScoresTab({ review }: { review: Review }) {
           border:       `1px solid ${QVT_BLUE}25`,
           borderRadius: 8,
           marginBottom: 16,
-          color:        C.textMuted,
+          color:        theme.textMuted,
           fontSize:     11,
           fontWeight:   500,
           fontFamily:   'Montserrat, sans-serif',
@@ -409,10 +417,10 @@ function MyScoresTab({ review }: { review: Review }) {
               key={t.id}
               onClick={() => setSecTab(t.id)}
               style={{
-                background:   isSel ? `${QVT_BLUE}20` : C.cardBg,
-                border:       `1px solid ${isSel ? QVT_BLUE : C.border}`,
+                background:   isSel ? `${QVT_BLUE}20` : theme.card,
+                border:       `1px solid ${isSel ? QVT_BLUE : theme.border}`,
                 borderRadius: 8,
-                color:        isSel ? QVT_BLUE : C.textMuted,
+                color:        isSel ? QVT_BLUE : theme.textMuted,
                 fontSize:     12,
                 fontWeight:   700,
                 cursor:       'pointer',
@@ -449,14 +457,14 @@ function MyScoresTab({ review }: { review: Review }) {
         style={{
           marginTop:    20,
           padding:      '12px 16px',
-          background:   C.cardBg,
-          border:       `1px solid ${C.border}`,
+          background:   theme.card,
+          border:       `1px solid ${theme.border}`,
           borderRadius: 8,
         }}
       >
         <div
           style={{
-            color:         C.textDim,
+            color:         theme.textDim,
             fontSize:      10,
             fontWeight:    700,
             letterSpacing: '0.1em',
@@ -481,7 +489,7 @@ function MyScoresTab({ review }: { review: Review }) {
               />
               <span
                 style={{
-                  color:      C.textMuted,
+                  color:      theme.textMuted,
                   fontSize:   11,
                   fontWeight: 600,
                   fontFamily: 'Montserrat, sans-serif',
@@ -499,6 +507,7 @@ function MyScoresTab({ review }: { review: Review }) {
 
 // ─── Feedback & Results tab ────────────────────────────────────────────────────
 function FeedbackTab({ review }: { review: Review }) {
+  const { theme } = useTheme();
   const { leadReview, hrReview, ceoReview } = review;
   const hasAnything = !!(leadReview || hrReview || ceoReview?.text?.finalDecision);
 
@@ -508,7 +517,7 @@ function FeedbackTab({ review }: { review: Review }) {
         style={{
           padding:    '48px 24px',
           textAlign:  'center',
-          color:      C.textMuted,
+          color:      theme.textMuted,
           fontSize:   13,
           fontFamily: 'Montserrat, sans-serif',
           fontWeight: 500,
@@ -547,7 +556,7 @@ function FeedbackTab({ review }: { review: Review }) {
           </div>
           <div
             style={{
-              color:        C.textPrimary,
+              color:        theme.textPrimary,
               fontSize:     13,
               fontWeight:   600,
               fontFamily:   'Montserrat, sans-serif',
@@ -558,7 +567,7 @@ function FeedbackTab({ review }: { review: Review }) {
             {ceoReview.text.finalDecision}
           </div>
           {ceoReview.text.ceoNotes ? (
-            <div style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+            <div style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
               {ceoReview.text.ceoNotes}
             </div>
           ) : null}
@@ -596,7 +605,7 @@ function FeedbackTab({ review }: { review: Review }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span
                   style={{
-                    color:         C.textDim,
+                    color:         theme.textDim,
                     fontSize:      10,
                     fontWeight:    700,
                     textTransform: 'uppercase',
@@ -663,6 +672,7 @@ function FeedbackTab({ review }: { review: Review }) {
 
 // ─── My Submission tab ────────────────────────────────────────────────────────
 function SubmissionTab({ review }: { review: Review }) {
+  const { theme } = useTheme();
   const selfRev = review.selfReview!;
 
   return (
@@ -671,11 +681,11 @@ function SubmissionTab({ review }: { review: Review }) {
       <div
         style={{
           padding:      '10px 14px',
-          background:   `${C.textDim}12`,
-          border:       `1px solid ${C.border}`,
+          background:   `${theme.textDim}12`,
+          border:       `1px solid ${theme.border}`,
           borderRadius: 8,
           marginBottom: 20,
-          color:        C.textMuted,
+          color:        theme.textMuted,
           fontSize:     11,
           fontWeight:   600,
           fontFamily:   'Montserrat, sans-serif',
@@ -772,10 +782,11 @@ interface LeadSelfTabProps {
 }
 
 function LeadSelfTab({ rev, selfSubTab, setSelfSubTab }: LeadSelfTabProps) {
+  const { theme } = useTheme();
   const selfRev = rev.selfReview;
   if (!selfRev) {
     return (
-      <div style={{ padding: '48px 24px', textAlign: 'center', color: C.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+      <div style={{ padding: '48px 24px', textAlign: 'center', color: theme.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
         No self-review data found.
       </div>
     );
@@ -790,7 +801,7 @@ function LeadSelfTab({ rev, selfSubTab, setSelfSubTab }: LeadSelfTabProps) {
   return (
     <div>
       {/* Info banner */}
-      <div style={{ padding: '10px 14px', background: `${C.textDim}12`, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 16, color: C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+      <div style={{ padding: '10px 14px', background: `${theme.textDim}12`, border: `1px solid ${theme.border}`, borderRadius: 8, marginBottom: 16, color: theme.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
         ℹ️ Employee self-assessment — read only.
       </div>
 
@@ -803,10 +814,10 @@ function LeadSelfTab({ rev, selfSubTab, setSelfSubTab }: LeadSelfTabProps) {
               key={t.id}
               onClick={() => setSelfSubTab(t.id)}
               style={{
-                background:   isSel ? `${LEAD_COLOR}20` : C.cardBg,
-                border:       `1px solid ${isSel ? LEAD_COLOR : C.border}`,
+                background:   isSel ? `${LEAD_COLOR}20` : theme.card,
+                border:       `1px solid ${isSel ? LEAD_COLOR : theme.border}`,
                 borderRadius: 8,
-                color:        isSel ? LEAD_COLOR : C.textMuted,
+                color:        isSel ? LEAD_COLOR : theme.textMuted,
                 fontSize:     12,
                 fontWeight:   700,
                 cursor:       'pointer',
@@ -879,6 +890,7 @@ function LeadScoringTab({
   setLeadBeh, setLeadFun, setLeadTxt,
   previewRev, leadSubTab, setLeadSubTab, onSubmit,
 }: LeadScoringTabProps) {
+  const { theme } = useTheme();
   const selfBeh = rev.selfReview?.behavioral ?? {};
   const selfFun = rev.selfReview?.functional ?? {};
 
@@ -897,7 +909,7 @@ function LeadScoringTab({
   return (
     <div>
       {/* Info banner */}
-      <div style={{ padding: '10px 14px', background: canEdit ? `${LEAD_COLOR}0c` : `${C.textDim}12`, border: `1px solid ${canEdit ? LEAD_COLOR + '30' : C.border}`, borderRadius: 8, marginBottom: 16, color: canEdit ? '#7dd3fc' : C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+      <div style={{ padding: '10px 14px', background: canEdit ? `${LEAD_COLOR}0c` : `${theme.textDim}12`, border: `1px solid ${canEdit ? LEAD_COLOR + '30' : theme.border}`, borderRadius: 8, marginBottom: 16, color: canEdit ? '#7dd3fc' : theme.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
         {bannerText}
       </div>
 
@@ -915,10 +927,10 @@ function LeadScoringTab({
               key={t.id}
               onClick={() => setLeadSubTab(t.id)}
               style={{
-                background:   isSel ? `${LEAD_COLOR}20` : C.cardBg,
-                border:       `1px solid ${isSel ? LEAD_COLOR : C.border}`,
+                background:   isSel ? `${LEAD_COLOR}20` : theme.card,
+                border:       `1px solid ${isSel ? LEAD_COLOR : theme.border}`,
                 borderRadius: 8,
-                color:        isSel ? LEAD_COLOR : C.textMuted,
+                color:        isSel ? LEAD_COLOR : theme.textMuted,
                 fontSize:     12,
                 fontWeight:   700,
                 cursor:       'pointer',
@@ -991,7 +1003,7 @@ function LeadScoringTab({
 
           {/* Recommendation selector */}
           <div>
-            <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 10 }}>
+            <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 10 }}>
               Recommendation
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
@@ -1004,9 +1016,9 @@ function LeadScoringTab({
                     disabled={!canEdit}
                     style={{
                       background:  isSel ? `${opt.color}25` : 'transparent',
-                      border:      `2px solid ${isSel ? opt.color : C.border}`,
+                      border:      `2px solid ${isSel ? opt.color : theme.border}`,
                       borderRadius: 8,
-                      color:       isSel ? opt.color : C.textMuted,
+                      color:       isSel ? opt.color : theme.textMuted,
                       padding:     '8px 22px',
                       fontSize:    13,
                       fontWeight:  800,
@@ -1054,14 +1066,15 @@ function LeadScoringTab({
 
 // ─── Stage placeholder card (used by all reviewer roles) ──────────────────────
 function StageHolder({ stageName, stageData }: { stageName: string; stageData: unknown }) {
+  const { theme } = useTheme();
   if (!stageData) {
     return (
-      <div style={{ padding: '48px 24px', textAlign: 'center', background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12 }}>
+      <div style={{ padding: '48px 24px', textAlign: 'center', background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 12 }}>
         <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.2 }}>🔒</div>
-        <div style={{ color: C.textMuted, fontSize: 13, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+        <div style={{ color: theme.textMuted, fontSize: 13, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
           This stage has not been reached yet.
         </div>
-        <div style={{ color: C.textDim, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 6 }}>
+        <div style={{ color: theme.textDim, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 6 }}>
           {stageName} review will unlock once the previous stage is complete.
         </div>
       </div>
@@ -1074,7 +1087,7 @@ function StageHolder({ stageName, stageData }: { stageName: string; stageData: u
   const note       = data.text?.disapprovalNote ?? '';
 
   return (
-    <div style={{ padding: '20px 24px', background: C.cardBg, border: `1px solid ${isReturned ? C.error + '40' : C.border}`, borderRadius: 12 }}>
+    <div style={{ padding: '20px 24px', background: theme.card, border: `1px solid ${isReturned ? C.error + '40' : theme.border}`, borderRadius: 12 }}>
       {isReturned ? (
         <>
           <div style={{ color: C.error, fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', marginBottom: note ? 12 : 0 }}>
@@ -1082,10 +1095,10 @@ function StageHolder({ stageName, stageData }: { stageName: string; stageData: u
           </div>
           {note && (
             <div>
-              <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontFamily: 'Montserrat, sans-serif', marginBottom: 4 }}>
+              <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontFamily: 'Montserrat, sans-serif', marginBottom: 4 }}>
                 COO Notes
               </div>
-              <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+              <div style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
                 {note}
               </div>
             </div>
@@ -1096,7 +1109,7 @@ function StageHolder({ stageName, stageData }: { stageName: string; stageData: u
           <div style={{ color: C.success, fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', marginBottom: 8 }}>
             ✓ {stageName} review submitted.
           </div>
-          <div style={{ color: C.textDim, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif' }}>
+          <div style={{ color: theme.textDim, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif' }}>
             Full review details available in Phase 4D.
           </div>
         </>
@@ -1114,6 +1127,7 @@ interface LeadDetailProps {
 }
 
 function LeadReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
+  const { theme } = useTheme();
   const [stageTab,    setStageTab]    = useState<'self' | 'lead' | 'hr' | 'coo' | 'ceo'>('lead');
   const [leadSubTab,  setLeadSubTab]  = useState<'beh' | 'fun' | 'feedback'>('beh');
   const [selfSubTab,  setSelfSubTab]  = useState<'beh' | 'fun' | 'comments'>('beh');
@@ -1196,7 +1210,7 @@ function LeadReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
   return (
     <div>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${theme.border}` }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
           <button
             onClick={goBack}
@@ -1207,13 +1221,13 @@ function LeadReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
           {hasOverall && <Ring pct={overallPct} size={72} />}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-          <h1 style={{ color: C.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 style={{ color: theme.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
             {rev.employeeName}
           </h1>
           <StatusPill status={rev.status} />
         </div>
         {subtitle && (
-          <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+          <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
             {subtitle}
           </p>
         )}
@@ -1221,7 +1235,7 @@ function LeadReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
       </div>
 
       {/* ── 5-stage tab bar ────────────────────────────────────────────────── */}
-      <div style={{ padding: '0 32px', borderBottom: `1px solid ${C.border}`, display: 'flex', gap: 0, overflowX: 'auto' as const }}>
+      <div style={{ padding: '0 32px', borderBottom: `1px solid ${theme.border}`, display: 'flex', gap: 0, overflowX: 'auto' as const }}>
         {stageTabs.map(tab => {
           const locked   = isLocked(tab.id);
           const done     = isDone(tab.id);
@@ -1239,7 +1253,7 @@ function LeadReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
                 background:   'transparent',
                 border:       'none',
                 borderBottom: `2px solid ${isActive && !locked ? LEAD_COLOR : 'transparent'}`,
-                color:        locked ? C.textDim : isActive ? C.textPrimary : C.textMuted,
+                color:        locked ? theme.textDim : isActive ? theme.textPrimary : theme.textMuted,
                 padding:      '12px 16px',
                 fontSize:     12,
                 fontWeight:   700,
@@ -1305,6 +1319,7 @@ function PrevFeedback({
   fields:       Array<{ label: string; value: string }>;
   defaultOpen?: boolean;
 }) {
+  const { theme } = useTheme();
   const [open, setOpen] = useState(defaultOpen);
   const filtered = fields.filter(f => f.value?.trim());
   if (filtered.length === 0) return null;
@@ -1323,22 +1338,22 @@ function PrevFeedback({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 14 }}>{icon}</span>
           <span style={{ color, fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>{title}</span>
-          <span style={{ color: C.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif' }}>
+          <span style={{ color: theme.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif' }}>
             · submitted {date}
           </span>
         </div>
-        <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', flexShrink: 0 }}>
+        <span style={{ color: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', flexShrink: 0 }}>
           {open ? '▲' : '▼'}
         </span>
       </button>
       {open && (
-        <div style={{ padding: '12px 16px', background: C.cardBg, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: '12px 16px', background: theme.card, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map(f => (
             <div key={f.label}>
-              <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontFamily: 'Montserrat, sans-serif', marginBottom: 3 }}>
+              <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontFamily: 'Montserrat, sans-serif', marginBottom: 3 }}>
                 {f.label}
               </div>
-              <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+              <div style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
                 {f.value}
               </div>
             </div>
@@ -1351,12 +1366,13 @@ function PrevFeedback({
 
 // ─── Read-only: Team Lead tab (for HR / COO viewers) ──────────────────────────
 function LeadReadonlyTab({ rev }: { rev: Review }) {
+  const { theme } = useTheme();
   const [subTab, setSubTab] = useState<'beh' | 'fun' | 'feedback'>('beh');
   const leadRev = rev.leadReview;
 
   if (!leadRev) {
     return (
-      <div style={{ padding: '48px 24px', textAlign: 'center', color: C.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+      <div style={{ padding: '48px 24px', textAlign: 'center', color: theme.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
         No Team Lead review data.
       </div>
     );
@@ -1370,7 +1386,7 @@ function LeadReadonlyTab({ rev }: { rev: Review }) {
 
   return (
     <div>
-      <div style={{ padding: '10px 14px', background: `${C.textDim}12`, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 16, color: C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+      <div style={{ padding: '10px 14px', background: `${theme.textDim}12`, border: `1px solid ${theme.border}`, borderRadius: 8, marginBottom: 16, color: theme.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
         ℹ️ Team Lead review — read only.
       </div>
       <div style={{ marginBottom: 20 }}>
@@ -1381,8 +1397,8 @@ function LeadReadonlyTab({ rev }: { rev: Review }) {
           const isSel = subTab === t.id;
           return (
             <button key={t.id} onClick={() => setSubTab(t.id)} style={{
-              background: isSel ? `${LEAD_COLOR}20` : C.cardBg, border: `1px solid ${isSel ? LEAD_COLOR : C.border}`,
-              borderRadius: 8, color: isSel ? LEAD_COLOR : C.textMuted, fontSize: 12, fontWeight: 700,
+              background: isSel ? `${LEAD_COLOR}20` : theme.card, border: `1px solid ${isSel ? LEAD_COLOR : theme.border}`,
+              borderRadius: 8, color: isSel ? LEAD_COLOR : theme.textMuted, fontSize: 12, fontWeight: 700,
               cursor: 'pointer', padding: '8px 14px', fontFamily: 'Montserrat, sans-serif', transition: 'all 0.15s',
             }}>{t.label}</button>
           );
@@ -1402,7 +1418,7 @@ function LeadReadonlyTab({ rev }: { rev: Review }) {
           <Txt label="Employee Comments on Record" value={leadRev.text.employeeComments} onChange={() => {}} readonly rows={2} />
           {leadRev.text.recommendation && (
             <div>
-              <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>
+              <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>
                 Recommendation
               </div>
               <span style={{ background: `${LEAD_COLOR}20`, border: `1px solid ${LEAD_COLOR}50`, color: LEAD_COLOR, borderRadius: 20, padding: '4px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
@@ -1423,11 +1439,12 @@ function LeadReadonlyTab({ rev }: { rev: Review }) {
 
 // ─── Read-only: HR tab (for COO viewer) ───────────────────────────────────────
 function HRReadonlyTab({ rev }: { rev: Review }) {
+  const { theme } = useTheme();
   const hrRev = rev.hrReview;
 
   if (!hrRev) {
     return (
-      <div style={{ padding: '48px 24px', textAlign: 'center', color: C.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+      <div style={{ padding: '48px 24px', textAlign: 'center', color: theme.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
         No HR review data.
       </div>
     );
@@ -1435,7 +1452,7 @@ function HRReadonlyTab({ rev }: { rev: Review }) {
 
   return (
     <div>
-      <div style={{ padding: '10px 14px', background: `${C.textDim}12`, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 16, color: C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+      <div style={{ padding: '10px 14px', background: `${theme.textDim}12`, border: `1px solid ${theme.border}`, borderRadius: 8, marginBottom: 16, color: theme.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
         ℹ️ People Lead (HR) review — read only.
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1455,11 +1472,12 @@ function HRReadonlyTab({ rev }: { rev: Review }) {
 
 // ─── Read-only: COO tab (for CEO viewer) ──────────────────────────────────────
 function COOReadonlyTab({ rev }: { rev: Review }) {
+  const { theme } = useTheme();
   const cooRev = rev.cooReview;
 
   if (!cooRev) {
     return (
-      <div style={{ padding: '48px 24px', textAlign: 'center', color: C.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+      <div style={{ padding: '48px 24px', textAlign: 'center', color: theme.textMuted, fontSize: 13, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
         No COO review data.
       </div>
     );
@@ -1469,7 +1487,7 @@ function COOReadonlyTab({ rev }: { rev: Review }) {
 
   return (
     <div>
-      <div style={{ padding: '10px 14px', background: `${C.textDim}12`, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 16, color: C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+      <div style={{ padding: '10px 14px', background: `${theme.textDim}12`, border: `1px solid ${theme.border}`, borderRadius: 8, marginBottom: 16, color: theme.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
         ℹ️ COO review — read only.
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1495,6 +1513,7 @@ interface HRScoringTabProps {
 }
 
 function HRScoringTab({ rev, canEdit, hrTxt, setHrTxt, onSubmit }: HRScoringTabProps) {
+  const { theme } = useTheme();
   const leadRev = rev.leadReview;
 
   const bannerText = canEdit
@@ -1510,7 +1529,7 @@ function HRScoringTab({ rev, canEdit, hrTxt, setHrTxt, onSubmit }: HRScoringTabP
 
   return (
     <div>
-      <div style={{ padding: '10px 14px', background: canEdit ? `${HR_COLOR}0c` : `${C.textDim}12`, border: `1px solid ${canEdit ? HR_COLOR + '30' : C.border}`, borderRadius: 8, marginBottom: 16, color: canEdit ? '#c4b5fd' : C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+      <div style={{ padding: '10px 14px', background: canEdit ? `${HR_COLOR}0c` : `${theme.textDim}12`, border: `1px solid ${canEdit ? HR_COLOR + '30' : theme.border}`, borderRadius: 8, marginBottom: 16, color: canEdit ? '#c4b5fd' : theme.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
         {bannerText}
       </div>
       <div style={{ marginBottom: 16 }}>
@@ -1565,6 +1584,7 @@ function HRScoringTab({ rev, canEdit, hrTxt, setHrTxt, onSubmit }: HRScoringTabP
 
 // ─── HR review detail (full layout) ───────────────────────────────────────────
 function HRReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
+  const { theme } = useTheme();
   const [stageTab,   setStageTab]   = useState<StageTabId>('hr');
   const [selfSubTab, setSelfSubTab] = useState<'beh' | 'fun' | 'comments'>('beh');
 
@@ -1589,7 +1609,7 @@ function HRReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
 
   return (
     <div>
-      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${theme.border}` }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
           <button onClick={goBack} style={{ background: 'transparent', border: 'none', color: HR_COLOR, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.02em' }}>
             ← Back
@@ -1597,13 +1617,13 @@ function HRReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
           {hasOverall && <Ring pct={overallPct} size={72} />}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-          <h1 style={{ color: C.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 style={{ color: theme.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
             {rev.employeeName}
           </h1>
           <StatusPill status={rev.status} />
         </div>
         {subtitle && (
-          <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+          <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
             {subtitle}
           </p>
         )}
@@ -1634,6 +1654,7 @@ interface COOScoringTabProps {
 }
 
 function COOScoringTab({ rev, canEdit, cooTxt, setCooTxt, onSubmit, onDisapprove }: COOScoringTabProps) {
+  const { theme } = useTheme();
   const leadRev = rev.leadReview;
   const hrRev   = rev.hrReview;
 
@@ -1662,7 +1683,7 @@ function COOScoringTab({ rev, canEdit, cooTxt, setCooTxt, onSubmit, onDisapprove
   return (
     <div>
       {/* Amber info banner */}
-      <div style={{ padding: '10px 14px', background: canEdit ? `${COO_COLOR}0c` : `${C.textDim}12`, border: `1px solid ${canEdit ? COO_COLOR + '30' : C.border}`, borderRadius: 8, marginBottom: 12, color: canEdit ? '#fcd34d' : C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+      <div style={{ padding: '10px 14px', background: canEdit ? `${COO_COLOR}0c` : `${theme.textDim}12`, border: `1px solid ${canEdit ? COO_COLOR + '30' : theme.border}`, borderRadius: 8, marginBottom: 12, color: canEdit ? '#fcd34d' : theme.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
         {bannerText}
       </div>
 
@@ -1699,7 +1720,7 @@ function COOScoringTab({ rev, canEdit, cooTxt, setCooTxt, onSubmit, onDisapprove
 
       {canEdit && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, gap: 16, flexWrap: 'wrap' as const }}>
-          <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+          <span style={{ color: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
             COO Recommendation &amp; Notes field is required for both actions.
           </span>
           <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
@@ -1733,6 +1754,7 @@ interface CEOScoringTabProps {
 }
 
 function CEOScoringTab({ rev, canEdit, ceoTxt, setCeoTxt, onSubmit, onDisapprove }: CEOScoringTabProps) {
+  const { theme } = useTheme();
   const leadRev  = rev.leadReview;
   const hrRev    = rev.hrReview;
   const cooRev   = rev.cooReview;
@@ -1807,7 +1829,7 @@ function CEOScoringTab({ rev, canEdit, ceoTxt, setCeoTxt, onSubmit, onDisapprove
 
       {canEdit && !isCompleted && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, gap: 16, flexWrap: 'wrap' as const }}>
-          <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+          <span style={{ color: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
             Final Decision field is required for both actions.
           </span>
           <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
@@ -1832,6 +1854,7 @@ function CEOScoringTab({ rev, canEdit, ceoTxt, setCeoTxt, onSubmit, onDisapprove
 
 // ─── COO review detail (full layout) ──────────────────────────────────────────
 function COOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
+  const { theme } = useTheme();
   const [stageTab,   setStageTab]   = useState<StageTabId>('coo');
   const [selfSubTab, setSelfSubTab] = useState<'beh' | 'fun' | 'comments'>('beh');
 
@@ -1871,7 +1894,7 @@ function COOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
 
   return (
     <div>
-      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${theme.border}` }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
           <button onClick={goBack} style={{ background: 'transparent', border: 'none', color: COO_COLOR, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.02em' }}>
             ← Back
@@ -1879,13 +1902,13 @@ function COOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
           {hasOverall && <Ring pct={overallPct} size={72} />}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-          <h1 style={{ color: C.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 style={{ color: theme.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
             {rev.employeeName}
           </h1>
           <StatusPill status={rev.status} />
         </div>
         {subtitle && (
-          <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+          <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
             {subtitle}
           </p>
         )}
@@ -1913,6 +1936,7 @@ function COOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
 
 // ─── CEO review detail (full layout) ──────────────────────────────────────────
 function CEOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
+  const { theme } = useTheme();
   const [stageTab,   setStageTab]   = useState<StageTabId>('ceo');
   const [selfSubTab, setSelfSubTab] = useState<'beh' | 'fun' | 'comments'>('beh');
 
@@ -1952,7 +1976,7 @@ function CEOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
 
   return (
     <div>
-      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${theme.border}` }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
           <button onClick={goBack} style={{ background: 'transparent', border: 'none', color: CEO_COLOR, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.02em' }}>
             ← Back
@@ -1960,13 +1984,13 @@ function CEOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
           {hasOverall && <Ring pct={overallPct} size={72} />}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-          <h1 style={{ color: C.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 style={{ color: theme.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
             {rev.employeeName}
           </h1>
           <StatusPill status={rev.status} />
         </div>
         {subtitle && (
-          <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+          <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
             {subtitle}
           </p>
         )}
@@ -1994,7 +2018,9 @@ function CEOReviewDetail({ ctx, rev, subtitle, goBack }: LeadDetailProps) {
 
 // ─── ReviewDetail ──────────────────────────────────────────────────────────────
 export default function ReviewDetail({ ctx }: ReviewDetailProps) {
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'scores' | 'feedback' | 'submission'>('scores');
+  const [exporting, setExporting] = useState(false);
 
   const {
     role, activeRev,
@@ -2029,7 +2055,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
   if (role !== 'employee') {
     return (
       <div>
-        <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${theme.border}` }}>
           <button
             onClick={goBack}
             style={{ background: 'transparent', border: 'none', color: QVT_BLUE, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif', marginBottom: 12, display: 'block' }}
@@ -2037,19 +2063,19 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
             ← Back
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-            <h1 style={{ color: C.textPrimary, fontSize: 20, fontWeight: 800, margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
+            <h1 style={{ color: theme.textPrimary, fontSize: 20, fontWeight: 800, margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
               {rev.employeeName}
             </h1>
             <StatusPill status={rev.status} />
           </div>
           {subtitle && (
-            <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif' }}>
+            <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif' }}>
               {subtitle}
             </p>
           )}
           <Timeline status={rev.status} />
         </div>
-        <div style={{ padding: '32px', color: C.textMuted, fontSize: 12, fontFamily: 'Montserrat, sans-serif' }}>
+        <div style={{ padding: '32px', color: theme.textMuted, fontSize: 12, fontFamily: 'Montserrat, sans-serif' }}>
           Unknown role.
         </div>
       </div>
@@ -2074,7 +2100,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
     return (
       <div>
         {/* Header */}
-        <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${theme.border}` }}>
           <div
             style={{
               display:        'flex',
@@ -2104,7 +2130,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
             <h1
               style={{
-                color:         C.textPrimary,
+                color:         theme.textPrimary,
                 fontSize:      20,
                 fontWeight:    800,
                 letterSpacing: '-0.01em',
@@ -2115,9 +2141,35 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
               {rev.employeeName}
             </h1>
             <StatusPill status={rev.status} />
+            {rev.status === 'completed' && (
+              <button
+                onClick={async () => {
+                  setExporting(true);
+                  await exportAppraisalPDF(rev);
+                  setExporting(false);
+                  ctx.showToast('PDF exported successfully.', 'success');
+                }}
+                disabled={exporting}
+                style={{
+                  background:    'transparent',
+                  border:        `1px solid ${QVT_BLUE}`,
+                  borderRadius:  6,
+                  color:         QVT_BLUE,
+                  fontSize:      11,
+                  fontWeight:    700,
+                  cursor:        exporting ? 'not-allowed' : 'pointer',
+                  padding:       '5px 12px',
+                  fontFamily:    'Montserrat, sans-serif',
+                  opacity:       exporting ? 0.6 : 1,
+                  transition:    'opacity 0.15s',
+                }}
+              >
+                {exporting ? 'Generating…' : '📄 Export PDF'}
+              </button>
+            )}
           </div>
           {subtitle ? (
-            <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
+            <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '0 0 14px', fontFamily: 'Montserrat, sans-serif', lineHeight: 1.5 }}>
               {subtitle}
             </p>
           ) : null}
@@ -2151,7 +2203,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
                 marginBottom: 20,
               }}
             >
-              <span style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, fontFamily: 'Montserrat, sans-serif' }}>
+              <span style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, fontFamily: 'Montserrat, sans-serif' }}>
                 ⏳ Self-review submitted on {rev.selfReview?.submittedAt}. Currently with{' '}
                 {STAGE_META[rev.status].label}. Agreed scores and feedback will appear here as each
                 stage completes.
@@ -2160,7 +2212,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
           )}
 
           {/* Tab bar */}
-          <div style={{ display: 'flex', borderBottom: `1px solid ${C.border}`, marginBottom: 20 }}>
+          <div style={{ display: 'flex', borderBottom: `1px solid ${theme.border}`, marginBottom: 20 }}>
             {tabDefs.map(tab => (
               <button
                 key={tab.id}
@@ -2169,7 +2221,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
                   background:   'transparent',
                   border:       'none',
                   borderBottom: `2px solid ${activeTab === tab.id ? QVT_BLUE : 'transparent'}`,
-                  color:        activeTab === tab.id ? C.textPrimary : C.textMuted,
+                  color:        activeTab === tab.id ? theme.textPrimary : theme.textMuted,
                   padding:      '10px 20px',
                   fontSize:     12,
                   fontWeight:   700,
@@ -2237,7 +2289,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
   return (
     <div>
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${theme.border}` }}>
         <div
           style={{
             display:        'flex',
@@ -2267,7 +2319,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
           <h1
             style={{
-              color:         C.textPrimary,
+              color:         theme.textPrimary,
               fontSize:      20,
               fontWeight:    800,
               letterSpacing: '-0.01em',
@@ -2282,7 +2334,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
         {subtitle ? (
           <p
             style={{
-              color:      C.textMuted,
+              color:      theme.textMuted,
               fontSize:   12,
               fontWeight: 500,
               margin:     '0 0 14px',
@@ -2322,7 +2374,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
           </div>
           <p
             style={{
-              color:      C.textMuted,
+              color:      theme.textMuted,
               fontSize:   12,
               fontWeight: 500,
               fontFamily: 'Montserrat, sans-serif',
@@ -2355,7 +2407,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
                 >
                   {n}
                 </div>
-                <span style={{ color: C.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+                <span style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
                   {SC_LABELS[n]}
                 </span>
               </div>
@@ -2373,8 +2425,8 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
               key={label}
               style={{
                 flex:         1,
-                background:   C.cardBg,
-                border:       `1px solid ${C.border}`,
+                background:   theme.card,
+                border:       `1px solid ${theme.border}`,
                 borderRadius: 10,
                 padding:      '14px 16px',
               }}
@@ -2387,21 +2439,21 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
                   marginBottom:   10,
                 }}
               >
-                <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+                <div style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
                   {label}
                 </div>
                 <div
                   style={{
-                    color:      scored === 10 ? C.success : C.textMuted,
+                    color:      scored === 10 ? C.success : theme.textMuted,
                     fontSize:   12,
                     fontWeight: 800,
                     fontFamily: 'Montserrat, sans-serif',
                   }}
                 >
-                  {scored}<span style={{ color: C.textDim }}>/10</span>
+                  {scored}<span style={{ color: theme.textDim }}>/10</span>
                 </div>
               </div>
-              <div style={{ height: 6, borderRadius: 3, background: C.border, overflow: 'hidden' }}>
+              <div style={{ height: 6, borderRadius: 3, background: theme.border, overflow: 'hidden' }}>
                 <div
                   style={{
                     height:       '100%',
@@ -2479,7 +2531,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
               </div>
               <div
                 style={{
-                  color:      C.textMuted,
+                  color:      theme.textMuted,
                   fontSize:   11,
                   fontWeight: 500,
                   fontFamily: 'Montserrat, sans-serif',
@@ -2496,7 +2548,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
 
         {/* Part III: Comments & Goals */}
         <div style={{ marginBottom: 24 }}>
-          <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ border: `1px solid ${theme.border}`, borderRadius: 10, overflow: 'hidden' }}>
             {/* Section header */}
             <div
               style={{
@@ -2505,7 +2557,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
                 gap:        10,
                 padding:    '12px 20px',
                 background: '#040e18',
-                borderBottom: `1px solid ${C.border}`,
+                borderBottom: `1px solid ${theme.border}`,
               }}
             >
               <span
@@ -2525,10 +2577,10 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
                 PART III
               </span>
               <div>
-                <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+                <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
                   Comments &amp; Goals
                 </div>
-                <div style={{ color: C.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
+                <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
                   Optional but recommended — gives context to your scores
                 </div>
               </div>
@@ -2538,7 +2590,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
             <div
               style={{
                 padding:       20,
-                background:    C.cardBg,
+                background:    theme.card,
                 display:       'flex',
                 flexDirection: 'column',
                 gap:           16,
@@ -2594,8 +2646,8 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
           bottom:         0,
           left:           240,
           right:          0,
-          background:     '#020c17',
-          borderTop:      '1px solid #0c2035',
+          background:     theme.sidebar,
+          borderTop:      `1px solid ${theme.border}`,
           padding:        '14px 30px',
           display:        'flex',
           alignItems:     'center',
@@ -2606,17 +2658,17 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
       >
         {/* Left: counters + status message */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ color: C.textMuted, fontSize: 12, fontWeight: 600 }}>
+          <span style={{ color: theme.textMuted, fontSize: 12, fontWeight: 600 }}>
             {'Behavioral '}
-            <span style={{ color: behScored === 10 ? C.success : C.textPrimary, fontWeight: 800 }}>
+            <span style={{ color: behScored === 10 ? C.success : theme.textPrimary, fontWeight: 800 }}>
               {behScored}/10
             </span>
             {'  ·  Functional '}
-            <span style={{ color: funScored === 10 ? C.success : C.textPrimary, fontWeight: 800 }}>
+            <span style={{ color: funScored === 10 ? C.success : theme.textPrimary, fontWeight: 800 }}>
               {funScored}/10
             </span>
           </span>
-          <span style={{ color: allDone ? C.success : C.textDim, fontSize: 12, fontWeight: 700 }}>
+          <span style={{ color: allDone ? C.success : theme.textDim, fontSize: 12, fontWeight: 700 }}>
             {allDone
               ? '✓ All 20 competencies scored — ready to submit'
               : 'Score all 20 to submit'}
@@ -2633,7 +2685,7 @@ export default function ReviewDetail({ ctx }: ReviewDetailProps) {
             }
           }}
           style={{
-            background:    allDone ? C.success : C.textDim,
+            background:    allDone ? C.success : theme.textDim,
             color:         '#fff',
             border:        'none',
             borderRadius:  8,

@@ -2,13 +2,15 @@
 
 import { ReviewStatus } from '@/types';
 import { STATUS_ORDER, STAGE_META } from '@/lib/constants';
-import { C, QVT_BLUE } from '@/styles/brand';
+import { QVT_BLUE } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface MiniProgressProps {
   status: ReviewStatus;
 }
 
 export default function MiniProgress({ status }: MiniProgressProps) {
+  const { theme } = useTheme();
   const currentIdx = STATUS_ORDER.indexOf(status);
 
   return (
@@ -18,7 +20,7 @@ export default function MiniProgress({ status }: MiniProgressProps) {
         const isActive = i === currentIdx;
         const isPending = i > currentIdx;
         const meta = STAGE_META[s];
-        const dotColor = isDone ? QVT_BLUE : isActive ? meta.color : C.border;
+        const dotColor = isDone ? QVT_BLUE : isActive ? meta.color : theme.border;
         const isLast = i === STATUS_ORDER.length - 1;
 
         return (
@@ -31,7 +33,7 @@ export default function MiniProgress({ status }: MiniProgressProps) {
                 height: isActive ? 10 : 8,
                 borderRadius: '50%',
                 background: isDone || isActive ? dotColor : 'transparent',
-                border: `2px solid ${isPending ? C.border : dotColor}`,
+                border: `2px solid ${isPending ? theme.border : dotColor}`,
                 transition: 'all 0.2s',
                 flexShrink: 0,
               }}
@@ -42,7 +44,7 @@ export default function MiniProgress({ status }: MiniProgressProps) {
                 style={{
                   width: 14,
                   height: 2,
-                  background: isDone ? QVT_BLUE : C.border,
+                  background: isDone ? QVT_BLUE : theme.border,
                   transition: 'background 0.2s',
                 }}
               />

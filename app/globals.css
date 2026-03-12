@@ -10,6 +10,7 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: light dark;
 }
 
 a {
@@ -24,13 +25,13 @@ button {
   font-family: var(--font-montserrat), Montserrat, sans-serif;
 }
 
-/* Scrollbar */
+/* Scrollbar — dark */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #020c17;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: #0c2035;
@@ -38,4 +39,14 @@ button {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #0b73a8;
+}
+
+/* Scrollbar — light override */
+@media (prefers-color-scheme: light) {
+  ::-webkit-scrollbar-thumb {
+    background: #c5d4e0;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #0b73a8;
+  }
 }

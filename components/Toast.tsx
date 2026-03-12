@@ -2,6 +2,7 @@
 
 import { ToastType } from '@/components/AppShell';
 import { C } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface ToastProps {
   msg: string;
@@ -16,6 +17,7 @@ const TYPE_STYLES: Record<ToastType, { bg: string; border: string; icon: string 
 };
 
 export default function Toast({ msg, type, onDismiss }: ToastProps) {
+  const { theme } = useTheme();
   const s = TYPE_STYLES[type];
 
   return (
@@ -55,7 +57,7 @@ export default function Toast({ msg, type, onDismiss }: ToastProps) {
       }}>
         {s.icon}
       </span>
-      <span style={{ color: C.textPrimary, fontSize: 12, fontWeight: 600, lineHeight: 1.4 }}>
+      <span style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 600, lineHeight: 1.4 }}>
         {msg}
       </span>
       <style>{`

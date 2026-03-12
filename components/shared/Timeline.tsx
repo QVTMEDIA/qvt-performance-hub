@@ -2,13 +2,15 @@
 
 import { ReviewStatus } from '@/types';
 import { STATUS_ORDER, STAGE_META } from '@/lib/constants';
-import { C, QVT_BLUE } from '@/styles/brand';
+import { QVT_BLUE } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface TimelineProps {
   status: ReviewStatus;
 }
 
 export default function Timeline({ status }: TimelineProps) {
+  const { theme } = useTheme();
   const currentIdx = STATUS_ORDER.indexOf(status);
 
   return (
@@ -16,7 +18,6 @@ export default function Timeline({ status }: TimelineProps) {
       {STATUS_ORDER.map((s, i) => {
         const isDone = i < currentIdx;
         const isActive = i === currentIdx;
-        const isPending = i > currentIdx;
         const isLast = i === STATUS_ORDER.length - 1;
         const meta = STAGE_META[s];
 
@@ -24,14 +25,14 @@ export default function Timeline({ status }: TimelineProps) {
           ? QVT_BLUE
           : isActive
           ? meta.color
-          : C.border;
+          : theme.border;
         const bubbleBg = isDone
           ? QVT_BLUE
           : isActive
           ? `${meta.color}20`
           : 'transparent';
-        const textColor = isDone ? QVT_BLUE : isActive ? meta.color : C.textDim;
-        const lineColor = isDone ? QVT_BLUE : C.border;
+        const textColor = isDone ? QVT_BLUE : isActive ? meta.color : theme.textDim;
+        const lineColor = isDone ? QVT_BLUE : theme.border;
 
         return (
           <div key={s} style={{ display: 'flex', alignItems: 'flex-start', flex: isLast ? undefined : 1, minWidth: 0 }}>
@@ -57,7 +58,7 @@ export default function Timeline({ status }: TimelineProps) {
                 ) : (
                   <span
                     style={{
-                      color: isActive ? meta.color : C.textDim,
+                      color: isActive ? meta.color : theme.textDim,
                       fontSize: 12,
                       fontWeight: 800,
                       fontFamily: 'Montserrat, sans-serif',

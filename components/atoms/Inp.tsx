@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, InputHTMLAttributes } from 'react';
-import { C, QVT_BLUE } from '@/styles/brand';
+import { QVT_BLUE } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface InpProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   label: string;
@@ -10,13 +11,14 @@ interface InpProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange
 }
 
 export default function Inp({ label, value, onChange, type = 'text', ...rest }: InpProps) {
+  const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <label
         style={{
-          color: C.textDim,
+          color: theme.textDim,
           fontSize: 10,
           fontWeight: 700,
           letterSpacing: '0.08em',
@@ -34,17 +36,16 @@ export default function Inp({ label, value, onChange, type = 'text', ...rest }: 
         onBlur={() => setFocused(false)}
         {...rest}
         style={{
-          background: C.cardBg,
-          border: `1px solid ${focused ? QVT_BLUE : C.border}`,
+          background: theme.input,
+          border: `1px solid ${focused ? QVT_BLUE : theme.inputBorder}`,
           borderRadius: 6,
           padding: '9px 12px',
-          color: C.textPrimary,
+          color: theme.textPrimary,
           fontSize: 12,
           fontWeight: 500,
           fontFamily: 'Montserrat, sans-serif',
           outline: 'none',
           transition: 'border-color 0.15s',
-          colorScheme: 'dark',
           width: '100%',
           boxSizing: 'border-box',
         }}

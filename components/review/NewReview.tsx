@@ -6,6 +6,7 @@ import { AppContext } from '@/components/AppShell';
 import { C } from '@/styles/brand';
 import { PERIODS } from '@/lib/constants';
 import { uid, today } from '@/lib/utils';
+import { useTheme } from '@/lib/ThemeContext';
 import Inp from '@/components/atoms/Inp';
 import Sel from '@/components/atoms/Sel';
 
@@ -24,6 +25,7 @@ interface NewReviewProps {
 }
 
 export default function NewReview({ ctx }: NewReviewProps) {
+  const { theme } = useTheme();
   const [formName,       setFormName]       = useState('');
   const [formTitle,      setFormTitle]      = useState('');
   const [formDept,       setFormDept]       = useState('');
@@ -65,7 +67,7 @@ export default function NewReview({ ctx }: NewReviewProps) {
       {/* Header */}
       <div style={{
         padding: '20px 32px 16px',
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: `1px solid ${theme.border}`,
         display: 'flex',
         alignItems: 'center',
         gap: 16,
@@ -74,9 +76,9 @@ export default function NewReview({ ctx }: NewReviewProps) {
           onClick={() => ctx.setView('dashboard')}
           style={{
             background:   'transparent',
-            border:       `1px solid ${C.border}`,
+            border:       `1px solid ${theme.border}`,
             borderRadius: 6,
-            color:        C.textMuted,
+            color:        theme.textMuted,
             fontSize:     12,
             fontWeight:   700,
             cursor:       'pointer',
@@ -88,7 +90,7 @@ export default function NewReview({ ctx }: NewReviewProps) {
         </button>
         <div>
           <h1 style={{
-            color:         C.textPrimary,
+            color:         theme.textPrimary,
             fontSize:      20,
             fontWeight:    800,
             letterSpacing: '-0.01em',
@@ -97,7 +99,7 @@ export default function NewReview({ ctx }: NewReviewProps) {
           }}>
             New Performance Appraisal
           </h1>
-          <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '4px 0 0', fontFamily: 'Montserrat, sans-serif' }}>
+          <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '4px 0 0', fontFamily: 'Montserrat, sans-serif' }}>
             Create a new appraisal record for an employee
           </p>
         </div>
@@ -107,14 +109,14 @@ export default function NewReview({ ctx }: NewReviewProps) {
 
         {/* Form card */}
         <div style={{
-          background:   C.cardBg,
-          border:       `1px solid ${C.border}`,
+          background:   theme.card,
+          border:       `1px solid ${theme.border}`,
           borderRadius: 12,
           padding:      24,
           marginBottom: 20,
         }}>
           <div style={{
-            color:         C.textDim,
+            color:         theme.textDim,
             fontSize:      10,
             fontWeight:    700,
             letterSpacing: '0.1em',
@@ -212,10 +214,10 @@ export default function NewReview({ ctx }: NewReviewProps) {
                   {s.n}
                 </div>
                 <div>
-                  <div style={{ color: C.textSecondary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+                  <div style={{ color: theme.textSecondary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
                     {s.label}
                   </div>
-                  <div style={{ color: C.textDim, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 1 }}>
+                  <div style={{ color: theme.textDim, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 1 }}>
                     {s.desc}
                   </div>
                 </div>

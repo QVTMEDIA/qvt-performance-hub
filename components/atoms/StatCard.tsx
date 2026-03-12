@@ -1,6 +1,6 @@
 'use client';
 
-import { C } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface StatCardProps {
   label: string;
@@ -9,12 +9,15 @@ interface StatCardProps {
   sub?: string;
 }
 
-export default function StatCard({ label, value, color = C.textPrimary, sub }: StatCardProps) {
+export default function StatCard({ label, value, color, sub }: StatCardProps) {
+  const { theme } = useTheme();
+  const valueColor = color ?? theme.textPrimary;
+
   return (
     <div
       style={{
-        background: C.cardBg,
-        border: `1px solid ${C.border}`,
+        background: theme.card,
+        border: `1px solid ${theme.border}`,
         borderRadius: 10,
         padding: '18px 20px',
         display: 'flex',
@@ -25,7 +28,7 @@ export default function StatCard({ label, value, color = C.textPrimary, sub }: S
     >
       <div
         style={{
-          color: C.textDim,
+          color: theme.textDim,
           fontSize: 10,
           fontWeight: 700,
           letterSpacing: '0.1em',
@@ -37,7 +40,7 @@ export default function StatCard({ label, value, color = C.textPrimary, sub }: S
       </div>
       <div
         style={{
-          color,
+          color: valueColor,
           fontSize: 28,
           fontWeight: 800,
           lineHeight: 1,
@@ -49,7 +52,7 @@ export default function StatCard({ label, value, color = C.textPrimary, sub }: S
       {sub && (
         <div
           style={{
-            color: C.textMuted,
+            color: theme.textMuted,
             fontSize: 11,
             fontWeight: 500,
             fontFamily: 'Montserrat, sans-serif',

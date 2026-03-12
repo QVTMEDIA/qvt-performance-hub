@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { signIn } from '@/lib/auth';
+import { useTheme } from '@/lib/ThemeContext';
 
 export default function LoginPage() {
+  const { theme } = useTheme();
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
@@ -30,10 +32,10 @@ export default function LoginPage() {
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '10px 14px',
-    background: '#071523',
-    border: '1px solid #0c2035',
+    background: theme.input,
+    border: `1px solid ${theme.inputBorder}`,
     borderRadius: 8,
-    color: '#f0f6fb',
+    color: theme.textPrimary,
     fontSize: 13,
     fontFamily: 'Montserrat, sans-serif',
     outline: 'none',
@@ -43,7 +45,7 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#04111e',
+      background: theme.bg,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -53,8 +55,8 @@ export default function LoginPage() {
       <div style={{
         width: '100%',
         maxWidth: 400,
-        background: '#071523',
-        border: '1px solid #0c2035',
+        background: theme.card,
+        border: `1px solid ${theme.border}`,
         borderRadius: 16,
         padding: '40px 36px',
       }}>
@@ -69,13 +71,13 @@ export default function LoginPage() {
               </text>
             </svg>
           </div>
-          <div style={{ color: '#f0f6fb', fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', marginBottom: 4 }}>
+          <div style={{ color: theme.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', marginBottom: 4 }}>
             QVT Media
           </div>
-          <div style={{ color: '#4a7a99', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             Performance Hub
           </div>
-          <div style={{ color: '#4a7a99', fontSize: 12, marginTop: 12 }}>
+          <div style={{ color: theme.textMuted, fontSize: 12, marginTop: 12 }}>
             Sign in to access your performance reviews
           </div>
         </div>
@@ -83,7 +85,7 @@ export default function LoginPage() {
         {/* Form */}
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', color: '#94a3b8', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+            <label style={{ display: 'block', color: theme.textSecondary, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
               Email
             </label>
             <input
@@ -97,7 +99,7 @@ export default function LoginPage() {
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <label style={{ display: 'block', color: '#94a3b8', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+            <label style={{ display: 'block', color: theme.textSecondary, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
               Password
             </label>
             <input

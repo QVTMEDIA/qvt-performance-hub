@@ -1,16 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Role, Review, Reminder, SelfReview, LeadReview, HRReview, COOReview, CEOReview } from '@/types';
 import { getStorage, setStorage } from '@/lib/storage';
 import { fetchReviews, createReview, updateReview, fetchReminders, createReminder, updateReminder } from '@/lib/dataService';
 import { getSession, getCurrentProfile, signOut } from '@/lib/auth';
 import { ROLE_META } from '@/lib/constants';
 import { uid, today } from '@/lib/utils';
-import { C, QVT_BLUE } from '@/styles/brand';
+import { QVT_BLUE } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
+import { useWindowSize } from '@/lib/useWindowSize';
+import { supabase } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 import Toast from '@/components/Toast';
 import Dashboard from '@/components/Dashboard';
+import { SkeletonCard } from '@/components/atoms/Skeleton';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // ─── Exported type aliases for stage text objects ─────────────────────────────
 export type SelfTxt = SelfReview['text'];
@@ -99,17 +104,57 @@ const DEFAULT_CEO_TXT: CeoTxt = {
   finalDecision: '', ceoNotes: '',
 };
 
+// ─── Raw Supabase row → Review mapper (mirrors dataService.ts) ────────────────
+function mapRawReview(raw: Record<string, unknown>): Review {
+  return {
+    id:             String(raw.id ?? ''),
+    employeeName:   String(raw.employee_name ?? ''),
+    jobTitle:       String(raw.job_title ?? ''),
+    department:     String(raw.department ?? ''),
+    supervisorName: String(raw.supervisor_name ?? ''),
+    resumptionDate: String(raw.resumption_date ?? ''),
+    period:         String(raw.period ?? ''),
+    status:         raw.status as Review['status'],
+    createdAt:      String(raw.created_at ?? ''),
+    selfReview:   (raw.self_review as Review['selfReview']) ?? null,
+    leadReview:   (raw.lead_review as Review['leadReview']) ?? null,
+    hrReview:     (raw.hr_review  as Review['hrReview'])   ?? null,
+    cooReview:    (raw.coo_review as Review['cooReview'])  ?? null,
+    ceoReview:    (raw.ceo_review as Review['ceoReview'])  ?? null,
+  };
+}
+
+function mapRawReminder(raw: Record<string, unknown>): Reminder {
+  return {
+    id:       String(raw.id ?? ''),
+    reviewId: String(raw.review_id ?? ''),
+    toRole:   raw.to_role as Role,
+    message:  String(raw.message ?? ''),
+    sentAt:   String(raw.sent_at ?? ''),
+    sentBy:   raw.sent_by as Role,
+    read:     Boolean(raw.read),
+  };
+}
+
 // ─── AppShell ─────────────────────────────────────────────────────────────────
 export default function AppShell() {
+  const { theme } = useTheme();
+  const { isMobile } = useWindowSize();
+
   // ── Core state ──────────────────────────────────────────────────────────────
-  const [loaded,    setLoaded]    = useState(false);
-  const [role,      setRole]      = useState<Role>('employee');
-  const [empName,   setEmpName]   = useState('');
-  const [reviews,   setReviews]   = useState<Review[]>([]);
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [view,      setView]      = useState<ViewType>('dashboard');
-  const [activeRev, setActiveRev] = useState<Review | null>(null);
-  const [toast,     setToast]     = useState<ToastState | null>(null);
+  const [loaded,      setLoaded]      = useState(false);
+  const [role,        setRole]        = useState<Role>('employee');
+  const [empName,     setEmpName]     = useState('');
+  const [reviews,     setReviews]     = useState<Review[]>([]);
+  const [reminders,   setReminders]   = useState<Reminder[]>([]);
+  const [view,        setView]        = useState<ViewType>('dashboard');
+  const [activeRev,   setActiveRev]   = useState<Review | null>(null);
+  const [toast,       setToast]       = useState<ToastState | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // ── Realtime channel refs ────────────────────────────────────────────────────
+  const reviewsChanRef   = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const remindersChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // ── Stage edit buffers ───────────────────────────────────────────────────────
   const [selfBeh, setSelfBeh] = useState<Record<string, number>>({});
@@ -121,6 +166,43 @@ export default function AppShell() {
   const [hrTxt,   setHrTxt]   = useState<HrTxt>(DEFAULT_HR_TXT);
   const [cooTxt,  setCooTxt]  = useState<CooTxt>(DEFAULT_COO_TXT);
   const [ceoTxt,  setCeoTxt]  = useState<CeoTxt>(DEFAULT_CEO_TXT);
+
+  // ── Toast helper ─────────────────────────────────────────────────────────────
+  const showToast = useCallback((msg: string, type: ToastType = 'info') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
+
+  // ── Realtime state updaters ──────────────────────────────────────────────────
+  const addReviewToState = useCallback((raw: Record<string, unknown>) => {
+    const rev = mapRawReview(raw);
+    setReviews(prev => prev.some(r => r.id === rev.id) ? prev : [...prev, rev]);
+  }, []);
+
+  const updateReviewInState = useCallback((raw: Record<string, unknown>) => {
+    const rev = mapRawReview(raw);
+    setReviews(prev => prev.map(r => r.id === rev.id ? rev : r));
+    setActiveRev(prev => prev?.id === rev.id ? rev : prev);
+  }, []);
+
+  const addReminderToState = useCallback((raw: Record<string, unknown>) => {
+    const rem = mapRawReminder(raw);
+    setReminders(prev => prev.some(r => r.id === rem.id) ? prev : [...prev, rem]);
+    setRole(currentRole => {
+      if (rem.toRole === currentRole) {
+        const truncated = rem.message.length > 60
+          ? rem.message.slice(0, 60) + '…'
+          : rem.message;
+        showToast(`📬 New notification — ${truncated}`, 'info');
+      }
+      return currentRole;
+    });
+  }, [showToast]);
+
+  const updateReminderInState = useCallback((raw: Record<string, unknown>) => {
+    const rem = mapRawReminder(raw);
+    setReminders(prev => prev.map(r => r.id === rem.id ? rem : r));
+  }, []);
 
   // ── Load from Supabase on mount (fallback to localStorage) ──────────────────
   useEffect(() => {
@@ -145,6 +227,30 @@ export default function AppShell() {
     init();
   }, []);
 
+  // ── Realtime subscriptions ───────────────────────────────────────────────────
+  useEffect(() => {
+    reviewsChanRef.current = supabase
+      .channel('reviews-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reviews' },
+        payload => addReviewToState(payload.new as Record<string, unknown>))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'reviews' },
+        payload => updateReviewInState(payload.new as Record<string, unknown>))
+      .subscribe();
+
+    remindersChanRef.current = supabase
+      .channel('reminders-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reminders' },
+        payload => addReminderToState(payload.new as Record<string, unknown>))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'reminders' },
+        payload => updateReminderInState(payload.new as Record<string, unknown>))
+      .subscribe();
+
+    return () => {
+      if (reviewsChanRef.current)   supabase.removeChannel(reviewsChanRef.current);
+      if (remindersChanRef.current) supabase.removeChannel(remindersChanRef.current);
+    };
+  }, [addReviewToState, updateReviewInState, addReminderToState, updateReminderInState]);
+
   // ── Persist helpers ──────────────────────────────────────────────────────────
   const saveReviews = useCallback((r: Review[]) => {
     setReviews(prev => {
@@ -166,12 +272,6 @@ export default function AppShell() {
       return r;
     });
     setStorage('remind', r);
-  }, []);
-
-  // ── Toast helper ─────────────────────────────────────────────────────────────
-  const showToast = useCallback((msg: string, type: ToastType = 'info') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
   }, []);
 
   // ── openReview — seeds all 9 stage buffers from stored data or defaults ──────
@@ -245,12 +345,15 @@ export default function AppShell() {
   // ── Loading screen ───────────────────────────────────────────────────────────
   if (!loaded) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: C.appBg }}>
-        <div style={{ textAlign: 'center' }}>
-          <QVTLogo size={48} />
-          <p style={{ color: C.textMuted, fontFamily: 'Montserrat, sans-serif', fontSize: 13, marginTop: 16, letterSpacing: '0.05em' }}>
-            Loading...
-          </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: theme.bg }}>
+        <div style={{ width: 360 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
+            <QVTLogo size={48} />
+            <p style={{ color: theme.textMuted, fontFamily: 'Montserrat, sans-serif', fontSize: 13, marginTop: 16, letterSpacing: '0.05em' }}>
+              Loading...
+            </p>
+          </div>
+          <SkeletonCard rows={4} />
         </div>
       </div>
     );
@@ -272,18 +375,68 @@ export default function AppShell() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.appBg, fontFamily: 'Montserrat, sans-serif' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: theme.bg, fontFamily: 'Montserrat, sans-serif' }}>
+      {/* Mobile backdrop */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 199,
+          }}
+        />
+      )}
+
       <Sidebar
         role={role}
         view={view}
         reminders={reminders}
-        onNav={(v) => { setView(v); setActiveRev(null); }}
+        onNav={(v) => { setView(v); setActiveRev(null); setSidebarOpen(false); }}
         onRoleChange={handleRoleChange}
         onSignOut={handleSignOut}
+        isMobile={isMobile}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
-      <main style={{ flex: 1, overflow: 'auto', minHeight: '100vh' }}>
-        <Dashboard ctx={ctx} />
+
+      <main style={{
+        flex: 1,
+        overflow: 'auto',
+        minHeight: '100vh',
+        marginLeft: isMobile ? 0 : 0,
+      }}>
+        {/* Hamburger on mobile */}
+        {isMobile && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              position:   'fixed',
+              top:        12,
+              left:       12,
+              zIndex:     198,
+              background: theme.sidebar,
+              border:     `1px solid ${theme.border}`,
+              borderRadius: 6,
+              color:      theme.textPrimary,
+              fontSize:   18,
+              width:      36,
+              height:     36,
+              cursor:     'pointer',
+              display:    'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ☰
+          </button>
+        )}
+        <ErrorBoundary>
+          <Dashboard ctx={ctx} />
+        </ErrorBoundary>
       </main>
+
       {toast && <Toast msg={toast.msg} type={toast.type} onDismiss={() => setToast(null)} />}
     </div>
   );

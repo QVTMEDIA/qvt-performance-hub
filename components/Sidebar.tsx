@@ -4,6 +4,7 @@ import { Role, Reminder } from '@/types';
 import { ROLE_META } from '@/lib/constants';
 import { C, QVT_BLUE } from '@/styles/brand';
 import { ViewType, QVTLogo } from '@/components/AppShell';
+import { useTheme } from '@/lib/ThemeContext';
 
 const ROLES: Role[] = ['employee', 'lead', 'hr', 'coo', 'ceo'];
 
@@ -14,9 +15,16 @@ interface SidebarProps {
   onNav: (v: ViewType) => void;
   onRoleChange: (r: Role) => void;
   onSignOut?: () => void;
+  isMobile?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export default function Sidebar({ role, view, reminders, onNav, onRoleChange, onSignOut }: SidebarProps) {
+export default function Sidebar({
+  role, view, reminders, onNav, onRoleChange, onSignOut,
+  isMobile = false, isOpen = false, onClose,
+}: SidebarProps) {
+  const { theme, isDark, toggleTheme } = useTheme();
   const unread = reminders.filter(r => r.toRole === role && !r.read).length;
   const roleMeta = ROLE_META[role];
 
@@ -25,27 +33,60 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange, on
     { id: 'new', label: 'New Appraisal', icon: '+' },
   ];
 
+  const sidebarStyle: React.CSSProperties = isMobile
+    ? {
+        width: 240,
+        minWidth: 240,
+        background: theme.sidebar,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        borderRight: `1px solid ${theme.border}`,
+        position: 'fixed',
+        top: 0,
+        left: isOpen ? 0 : -240,
+        transition: 'left 0.25s ease',
+        zIndex: 200,
+      }
+    : {
+        width: 240,
+        minWidth: 240,
+        background: theme.sidebar,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        borderRight: `1px solid ${theme.border}`,
+        position: 'sticky',
+        top: 0,
+      };
+
   return (
-    <aside style={{
-      width: 240,
-      minWidth: 240,
-      background: C.sidebarBg,
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      borderRight: `1px solid ${C.border}`,
-      position: 'sticky',
-      top: 0,
-    }}>
+    <aside style={sidebarStyle}>
       {/* Logo area */}
-      <div style={{ padding: '24px 20px 20px', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ padding: '24px 20px 20px', borderBottom: `1px solid ${theme.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {isMobile && onClose && (
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: theme.textMuted,
+                fontSize: 18,
+                cursor: 'pointer',
+                padding: '0 4px 0 0',
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          )}
           <QVTLogo size={36} />
           <div>
-            <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
+            <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
               QVT Media
             </div>
-            <div style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            <div style={{ color: theme.textMuted, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               Performance Hub
             </div>
           </div>
@@ -53,8 +94,8 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange, on
       </div>
 
       {/* Current role badge */}
-      <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
+      <div style={{ padding: '14px 20px', borderBottom: `1px solid ${theme.border}` }}>
+        <div style={{ fontSize: 10, color: theme.textDim, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
           Active Role
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -86,7 +127,7 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange, on
           return (
             <button
               key={item.id}
-              onClick={() => onNav(item.id)}
+              onClick={() => { onNav(item.id); onClose?.(); }}
               style={{
                 display:    'flex',
                 alignItems: 'center',
@@ -101,11 +142,11 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange, on
                 transition: 'background 0.15s',
               }}
             >
-              <span style={{ color: active ? QVT_BLUE : C.textDim, fontSize: 14, width: 18, textAlign: 'center' }}>
+              <span style={{ color: active ? QVT_BLUE : theme.textDim, fontSize: 14, width: 18, textAlign: 'center' }}>
                 {item.icon}
               </span>
               <span style={{
-                color:         active ? C.textPrimary : C.textDim,
+                color:         active ? theme.textPrimary : theme.textDim,
                 fontSize:      12,
                 fontWeight:    active ? 700 : 600,
                 letterSpacing: '0.02em',
@@ -130,12 +171,68 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange, on
             </button>
           );
         })}
+
+        {/* Theme toggle */}
+        <div style={{ padding: '12px 20px' }}>
+          <button
+            onClick={toggleTheme}
+            style={{
+              display:      'flex',
+              alignItems:   'center',
+              width:        '100%',
+              background:   `${theme.border}`,
+              border:       `1px solid ${theme.border}`,
+              borderRadius: 20,
+              padding:      '4px',
+              cursor:       'pointer',
+              position:     'relative',
+              transition:   'background 0.2s',
+            }}
+          >
+            <span style={{
+              position:     'absolute',
+              left:         isDark ? 'calc(50% - 2px)' : 4,
+              width:        'calc(50% - 2px)',
+              height:       'calc(100% - 8px)',
+              background:   QVT_BLUE,
+              borderRadius: 16,
+              transition:   'left 0.2s ease',
+              top:          4,
+            }} />
+            <span style={{
+              flex:       1,
+              textAlign:  'center',
+              fontSize:   10,
+              fontWeight: 700,
+              fontFamily: 'Montserrat, sans-serif',
+              color:      !isDark ? '#fff' : theme.textDim,
+              padding:    '3px 0',
+              position:   'relative',
+              zIndex:     1,
+            }}>
+              ☀️ Light
+            </span>
+            <span style={{
+              flex:       1,
+              textAlign:  'center',
+              fontSize:   10,
+              fontWeight: 700,
+              fontFamily: 'Montserrat, sans-serif',
+              color:      isDark ? '#fff' : theme.textDim,
+              padding:    '3px 0',
+              position:   'relative',
+              zIndex:     1,
+            }}>
+              🌙 Dark
+            </span>
+          </button>
+        </div>
       </nav>
 
       {/* Role switcher footer — dev only */}
       {process.env.NODE_ENV === 'development' && (
-        <div style={{ padding: '16px 20px', borderTop: `1px solid ${C.border}` }}>
-          <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+        <div style={{ padding: '16px 20px', borderTop: `1px solid ${theme.border}` }}>
+          <div style={{ fontSize: 10, color: theme.textDim, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
             Demo — Switch Role
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -162,7 +259,7 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange, on
                 >
                   <span style={{ fontSize: 12 }}>{m.icon}</span>
                   <span style={{
-                    color:      active ? m.color : C.textDim,
+                    color:      active ? m.color : theme.textDim,
                     fontSize:   11,
                     fontWeight: active ? 700 : 500,
                     fontFamily: 'Montserrat, sans-serif',
@@ -194,7 +291,7 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange, on
 
       {/* Sign out */}
       {onSignOut && (
-        <div style={{ padding: '12px 20px', borderTop: `1px solid ${C.border}` }}>
+        <div style={{ padding: '12px 20px', borderTop: `1px solid ${theme.border}` }}>
           <button
             onClick={onSignOut}
             style={{
@@ -204,15 +301,15 @@ export default function Sidebar({ role, view, reminders, onNav, onRoleChange, on
               width:      '100%',
               padding:    '8px 10px',
               background: 'transparent',
-              border:     `1px solid ${C.border}`,
+              border:     `1px solid ${theme.border}`,
               borderRadius: 6,
               cursor:     'pointer',
               transition: 'background 0.15s',
             }}
           >
-            <span style={{ color: C.textDim, fontSize: 13 }}>↩</span>
+            <span style={{ color: theme.textDim, fontSize: 13 }}>↩</span>
             <span style={{
-              color:      C.textDim,
+              color:      theme.textDim,
               fontSize:   11,
               fontWeight: 600,
               fontFamily: 'Montserrat, sans-serif',

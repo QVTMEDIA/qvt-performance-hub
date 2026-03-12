@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { AppContext } from '@/components/AppShell';
 import { calcOverall, getBand } from '@/lib/scoring';
 import { C, BAND_COLORS } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 import { STATUS_ORDER, STAGE_META, PERIODS } from '@/lib/constants';
 import { CEOReview, Review } from '@/types';
 import { today } from '@/lib/utils';
@@ -27,10 +28,10 @@ interface CEODashboardProps {
   ctx: AppContext;
 }
 
-function SectionLabel({ label }: { label: string }) {
+function SectionLabel({ label, textDim }: { label: string; textDim: string }) {
   return (
     <div style={{
-      color: C.textDim, fontSize: 10, fontWeight: 700,
+      color: textDim, fontSize: 10, fontWeight: 700,
       letterSpacing: '0.1em', textTransform: 'uppercase',
       marginBottom: 12, fontFamily: 'Montserrat, sans-serif',
     }}>
@@ -39,12 +40,12 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-function EmptySlot({ message }: { message: string }) {
+function EmptySlot({ message, textDim, card, border }: { message: string; textDim: string; card: string; border: string }) {
   return (
     <div style={{
-      padding: '32px 24px', textAlign: 'center', color: C.textDim,
+      padding: '32px 24px', textAlign: 'center', color: textDim,
       fontSize: 12, fontFamily: 'Montserrat, sans-serif',
-      background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 10,
+      background: card, border: `1px solid ${border}`, borderRadius: 10,
     }}>
       {message}
     </div>
@@ -56,25 +57,26 @@ function revScore(rev: Review): number {
   return calcOverall(rev.leadReview.behavioral, rev.leadReview.functional);
 }
 
-function StageSummary({ icon, color, label, lines }: {
+function StageSummary({ icon, color, label, lines, bg, border, textDim, textSecondary }: {
   icon: string; color: string; label: string; lines: Array<{ key: string; val: string }>;
+  bg: string; border: string; textDim: string; textSecondary: string;
 }) {
   return (
     <div style={{
-      background: C.appBg, border: `1px solid ${C.border}`, borderRadius: 8,
+      background: bg, border: `1px solid ${border}`, borderRadius: 8,
       padding: '12px 14px', flex: 1, minWidth: 180,
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
-        borderBottom: `1px solid ${C.border}`, paddingBottom: 8,
+        borderBottom: `1px solid ${border}`, paddingBottom: 8,
       }}>
         <span style={{ fontSize: 14 }}>{icon}</span>
         <span style={{ color, fontSize: 11, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>{label}</span>
       </div>
       {lines.map(({ key, val }) => val ? (
         <div key={key} style={{ marginBottom: 6 }}>
-          <div style={{ color: C.textDim, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', marginBottom: 2 }}>{key}</div>
-          <div style={{ color: C.textSecondary, fontSize: 11, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.4 }}>{val}</div>
+          <div style={{ color: textDim, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', marginBottom: 2 }}>{key}</div>
+          <div style={{ color: textSecondary, fontSize: 11, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.4 }}>{val}</div>
         </div>
       ) : null)}
     </div>
@@ -83,6 +85,7 @@ function StageSummary({ icon, color, label, lines }: {
 
 export default function CEODashboard({ ctx }: CEODashboardProps) {
   const { reviews, reminders, openReview, saveReminders, patch, addRem, showToast } = ctx;
+  const { theme } = useTheme();
   const [inlineDecision, setInlineDecision] = useState<Record<string, string>>({});
   const [inlineNote,     setInlineNote]     = useState<Record<string, string>>({});
 
@@ -178,14 +181,14 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
   return (
     <div>
       {/* Header */}
-      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${theme.border}` }}>
         <h1 style={{
-          color: C.textPrimary, fontSize: 20, fontWeight: 800,
+          color: theme.textPrimary, fontSize: 20, fontWeight: 800,
           letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif',
         }}>
           <span style={{ color: CEO_COLOR }}>CEO</span> Dashboard
         </h1>
-        <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '4px 0 0', fontFamily: 'Montserrat, sans-serif' }}>
+        <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '4px 0 0', fontFamily: 'Montserrat, sans-serif' }}>
           QVT Media Performance Hub · {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
@@ -198,9 +201,9 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
         {/* Stat Cards — Row 1 */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
           <StatCard label="Total Appraisals"      value={reviews.length} />
-          <StatCard label="Awaiting CEO Approval" value={awaiting.length}  color={awaiting.length  > 0 ? CEO_COLOR : C.textDim} />
-          <StatCard label="Completed"             value={completed.length} color={completed.length > 0 ? C.success : C.textDim} />
-          <StatCard label="Returned to COO"       value={returned.length}  color={returned.length  > 0 ? C.warning : C.textDim} />
+          <StatCard label="Awaiting CEO Approval" value={awaiting.length}  color={awaiting.length  > 0 ? CEO_COLOR : theme.textDim} />
+          <StatCard label="Completed"             value={completed.length} color={completed.length > 0 ? C.success : theme.textDim} />
+          <StatCard label="Returned to COO"       value={returned.length}  color={returned.length  > 0 ? C.warning : theme.textDim} />
         </div>
 
         {/* Stat Cards — Row 2 */}
@@ -208,35 +211,35 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
           <StatCard
             label="Org Average Score"
             value={orgAvgPct > 0 ? `${orgAvgPct}%` : '—'}
-            color={orgBand ? BAND_COLORS[orgBand] : C.textDim}
+            color={orgBand ? BAND_COLORS[orgBand] : theme.textDim}
             sub={orgBand ?? undefined}
           />
           <StatCard
             label="Completion Rate"
             value={reviews.length > 0 ? `${completionRate}%` : '—'}
-            color={completionRate >= 80 ? C.success : completionRate >= 50 ? C.warning : C.textDim}
+            color={completionRate >= 80 ? C.success : completionRate >= 50 ? C.warning : theme.textDim}
             sub={`${completed.length} of ${reviews.length}`}
           />
         </div>
 
         {/* ⚡ Awaiting Final Approval — inline cards */}
         <div style={{ marginBottom: 28 }}>
-          <SectionLabel label="⚡ Awaiting Final Approval" />
+          <SectionLabel label="⚡ Awaiting Final Approval" textDim={theme.textDim} />
           {awaiting.length === 0 ? (
-            <EmptySlot message="No appraisals awaiting CEO approval." />
+            <EmptySlot message="No appraisals awaiting CEO approval." textDim={theme.textDim} card={theme.card} border={theme.border} />
           ) : (
             awaiting.map(rev => (
               <div key={rev.id} style={{
-                background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12,
+                background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 12,
                 padding: '20px 24px', marginBottom: 16,
               }}>
                 {/* Card header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                   <div>
-                    <div style={{ color: C.textPrimary, fontSize: 16, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
+                    <div style={{ color: theme.textPrimary, fontSize: 16, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
                       {rev.employeeName}
                     </div>
-                    <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
+                    <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
                       {[rev.jobTitle, rev.department, rev.period].filter(Boolean).join(' · ')}
                     </div>
                   </div>
@@ -245,8 +248,8 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
                     <button
                       onClick={() => openReview(rev)}
                       style={{
-                        background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 6,
-                        color: C.textMuted, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                        background: 'transparent', border: `1px solid ${theme.border}`, borderRadius: 6,
+                        color: theme.textMuted, fontSize: 11, fontWeight: 700, cursor: 'pointer',
                         padding: '5px 12px', fontFamily: 'Montserrat, sans-serif',
                       }}
                     >
@@ -270,6 +273,10 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
                         { key: 'Improvements',   val: rev.leadReview.text.improvements },
                         { key: 'Recommendation', val: rev.leadReview.text.recommendation },
                       ]}
+                      bg={theme.bg}
+                      border={theme.border}
+                      textDim={theme.textDim}
+                      textSecondary={theme.textSecondary}
                     />
                   )}
                   {rev.hrReview && (
@@ -279,6 +286,10 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
                         { key: 'HR Comments', val: rev.hrReview.text.hrComments },
                         { key: 'HR Remarks',  val: rev.hrReview.text.hrRemarks },
                       ]}
+                      bg={theme.bg}
+                      border={theme.border}
+                      textDim={theme.textDim}
+                      textSecondary={theme.textSecondary}
                     />
                   )}
                   {rev.cooReview && (
@@ -288,13 +299,17 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
                         { key: 'Strategic Alignment', val: rev.cooReview.text.strategicAlignment },
                         { key: 'COO Comments',        val: rev.cooReview.text.cooComments },
                       ]}
+                      bg={theme.bg}
+                      border={theme.border}
+                      textDim={theme.textDim}
+                      textSecondary={theme.textSecondary}
                     />
                   )}
                 </div>
 
                 {/* Decision inputs */}
                 <div style={{ marginBottom: 12 }}>
-                  <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>
+                  <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>
                     Final Decision Notes <span style={{ color: CEO_COLOR }}>*</span>
                   </div>
                   <textarea
@@ -303,15 +318,15 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
                     onChange={e => setInlineDecision(prev => ({ ...prev, [rev.id]: e.target.value }))}
                     placeholder="Summarise your final decision and rationale…"
                     style={{
-                      width: '100%', background: C.appBg, border: `1px solid ${C.border}`,
-                      borderRadius: 8, color: C.textPrimary, fontSize: 12,
+                      width: '100%', background: theme.bg, border: `1px solid ${theme.border}`,
+                      borderRadius: 8, color: theme.textPrimary, fontSize: 12,
                       fontFamily: 'Montserrat, sans-serif', padding: '10px 12px',
                       resize: 'vertical', outline: 'none', boxSizing: 'border-box',
                     }}
                   />
                 </div>
                 <div style={{ marginBottom: 16 }}>
-                  <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>
+                  <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>
                     CEO Notes (optional)
                   </div>
                   <textarea
@@ -320,8 +335,8 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
                     onChange={e => setInlineNote(prev => ({ ...prev, [rev.id]: e.target.value }))}
                     placeholder="Any additional notes for the record…"
                     style={{
-                      width: '100%', background: C.appBg, border: `1px solid ${C.border}`,
-                      borderRadius: 8, color: C.textPrimary, fontSize: 12,
+                      width: '100%', background: theme.bg, border: `1px solid ${theme.border}`,
+                      borderRadius: 8, color: theme.textPrimary, fontSize: 12,
                       fontFamily: 'Montserrat, sans-serif', padding: '10px 12px',
                       resize: 'vertical', outline: 'none', boxSizing: 'border-box',
                     }}
@@ -330,7 +345,7 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
 
                 {/* Action row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                  <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>
+                  <span style={{ color: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>
                     Final Decision field is required for both actions.
                   </span>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -366,32 +381,32 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
         {/* 📈 Organisation Trend — shown when 3+ completed with scores */}
         {trendData.length >= 3 && (
           <div style={{ marginBottom: 28 }}>
-            <SectionLabel label="📈 Organisation Trend" />
+            <SectionLabel label="📈 Organisation Trend" textDim={theme.textDim} />
             <div style={{
-              background: C.cardBg, border: `1px solid ${C.border}`,
+              background: theme.card, border: `1px solid ${theme.border}`,
               borderRadius: 10, padding: '20px 16px',
             }}>
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={trendData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme.border} />
                   <XAxis
                     dataKey="period"
-                    tick={{ fill: C.textMuted, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}
-                    axisLine={{ stroke: C.border }}
+                    tick={{ fill: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}
+                    axisLine={{ stroke: theme.border }}
                     tickLine={false}
                   />
                   <YAxis
                     domain={[0, 100]}
-                    tick={{ fill: C.textMuted, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}
+                    tick={{ fill: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}
                     axisLine={false}
                     tickLine={false}
                     width={32}
                     tickFormatter={(v: number) => `${v}%`}
                   />
                   <Tooltip
-                    contentStyle={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 8 }}
-                    labelStyle={{ color: C.textPrimary, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', fontSize: 12 }}
-                    itemStyle={{ color: C.textMuted, fontFamily: 'Montserrat, sans-serif', fontSize: 11 }}
+                    contentStyle={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 8, fontFamily: 'Montserrat, sans-serif' }}
+                    labelStyle={{ color: theme.textMuted, fontSize: 11 }}
+                    itemStyle={{ color: theme.textPrimary }}
                     formatter={(v: number | undefined) => [`${v ?? 0}%`, 'Org Average']}
                   />
                   <ReferenceLine y={90} stroke={BAND_COLORS['Exceptional']}    strokeDasharray="4 4" strokeOpacity={0.5} />
@@ -415,21 +430,21 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
         {/* 🏆 Top Performers */}
         {topPerformers.length > 0 && (
           <div style={{ marginBottom: 28 }}>
-            <SectionLabel label="🏆 Top Performers" />
+            <SectionLabel label="🏆 Top Performers" textDim={theme.textDim} />
             <div style={{
-              background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden',
+              background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 10, overflow: 'hidden',
             }}>
               {topPerformers.map((rev, i) => {
                 const score = Math.round(revScore(rev));
                 const band  = getBand(score);
-                const rankColor = i < 3 ? RANK_COLORS[i] : C.textDim;
+                const rankColor = i < 3 ? RANK_COLORS[i] : theme.textDim;
                 const isLast = i === topPerformers.length - 1;
                 return (
                   <div
                     key={rev.id}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
-                      borderBottom: isLast ? 'none' : `1px solid ${C.border}`,
+                      borderBottom: isLast ? 'none' : `1px solid ${theme.border}`,
                     }}
                   >
                     <div style={{
@@ -442,10 +457,10 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
                       {i + 1}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+                      <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
                         {rev.employeeName}
                       </div>
-                      <div style={{ color: C.textMuted, fontSize: 11, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
+                      <div style={{ color: theme.textMuted, fontSize: 11, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
                         {[rev.jobTitle, rev.department].filter(Boolean).join(' · ')}
                       </div>
                     </div>
@@ -453,7 +468,7 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
                       <div style={{ color: BAND_COLORS[band], fontSize: 16, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
                         {score}%
                       </div>
-                      <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+                      <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
                         {band}
                       </div>
                     </div>
@@ -467,17 +482,17 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
         {/* 📊 Department Breakdown — shown when 2+ departments */}
         {deptRows.length >= 2 && (
           <div style={{ marginBottom: 28 }}>
-            <SectionLabel label="📊 Department Breakdown" />
+            <SectionLabel label="📊 Department Breakdown" textDim={theme.textDim} />
             <div style={{
-              background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden',
+              background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 10, overflow: 'hidden',
             }}>
               {/* Header */}
               <div style={{
                 display: 'grid', gridTemplateColumns: '1fr 80px 80px 120px',
-                padding: '10px 20px', borderBottom: `1px solid ${C.border}`,
+                padding: '10px 20px', borderBottom: `1px solid ${theme.border}`,
               }}>
                 {['Department', 'Reviews', 'Avg Score', 'Band'].map(h => (
-                  <div key={h} style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>
+                  <div key={h} style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>
                     {h}
                   </div>
                 ))}
@@ -488,11 +503,11 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
                   style={{
                     display: 'grid', gridTemplateColumns: '1fr 80px 80px 120px',
                     padding: '11px 20px', alignItems: 'center',
-                    borderBottom: i === deptRows.length - 1 ? 'none' : `1px solid ${C.border}`,
+                    borderBottom: i === deptRows.length - 1 ? 'none' : `1px solid ${theme.border}`,
                   }}
                 >
-                  <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>{row.dept}</div>
-                  <div style={{ color: C.textMuted, fontSize: 13, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>{row.count}</div>
+                  <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>{row.dept}</div>
+                  <div style={{ color: theme.textMuted, fontSize: 13, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>{row.count}</div>
                   <div style={{ color: BAND_COLORS[row.band], fontSize: 14, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>{row.avg}%</div>
                   <div>
                     <span style={{
@@ -512,7 +527,7 @@ export default function CEODashboard({ ctx }: CEODashboardProps) {
         {/* ✅ All Completed Appraisals */}
         {completed.length > 0 && (
           <div>
-            <SectionLabel label="✅ All Completed Appraisals" />
+            <SectionLabel label="✅ All Completed Appraisals" textDim={theme.textDim} />
             <RevTable reviews={completed} onSelect={openReview} showScore />
           </div>
         )}

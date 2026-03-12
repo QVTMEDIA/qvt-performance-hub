@@ -15,6 +15,7 @@ import Sel from '@/components/atoms/Sel';
 import StatCard from '@/components/atoms/StatCard';
 import StatusPill from '@/components/atoms/StatusPill';
 import RevTable from '@/components/shared/RevTable';
+import { useTheme } from '@/lib/ThemeContext';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface EmployeeDashboardProps {
@@ -78,6 +79,7 @@ function buildNameData(
 
 // ─── Stateless sub-components ─────────────────────────────────────────────────
 function EmptyNameState() {
+  const { theme } = useTheme();
   return (
     <div
       style={{
@@ -85,8 +87,8 @@ function EmptyNameState() {
         flexDirection:  'column',
         alignItems:     'center',
         padding:        '52px 24px',
-        background:     C.cardBg,
-        border:         `1px solid ${C.border}`,
+        background:     theme.card,
+        border:         `1px solid ${theme.border}`,
         borderRadius:   12,
         textAlign:      'center',
         marginBottom:   20,
@@ -95,7 +97,7 @@ function EmptyNameState() {
       <div style={{ fontSize: 42, marginBottom: 14, opacity: 0.35 }}>👤</div>
       <div
         style={{
-          color:        C.textSecondary,
+          color:        theme.textSecondary,
           fontSize:     14,
           fontWeight:   700,
           marginBottom: 8,
@@ -106,7 +108,7 @@ function EmptyNameState() {
       </div>
       <div
         style={{
-          color:      C.textMuted,
+          color:      theme.textMuted,
           fontSize:   12,
           fontWeight: 500,
           maxWidth:   300,
@@ -151,6 +153,7 @@ function ChartTooltip({ active, payload, label }: {
   payload?: Array<{ name: string; value: number }>;
   label?:   string;
 }) {
+  const { theme } = useTheme();
   if (!active || !payload?.length) return null;
   const overall = payload.find(p => p.name === 'score');
   const beh     = payload.find(p => p.name === 'behavioral');
@@ -159,14 +162,14 @@ function ChartTooltip({ active, payload, label }: {
   const band    = score > 0 ? getBand(score) : null;
 
   return (
-    <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px', fontFamily: 'Montserrat, sans-serif', minWidth: 160 }}>
-      <div style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, marginBottom: 6 }}>{label}</div>
+    <div style={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 8, padding: '10px 14px', fontFamily: 'Montserrat, sans-serif', minWidth: 160 }}>
+      <div style={{ color: theme.textMuted, fontSize: 10, fontWeight: 600, marginBottom: 6 }}>{label}</div>
       {band && (
         <>
           <div style={{ color: BAND_COLORS[band], fontSize: 18, fontWeight: 800, lineHeight: 1 }}>
             {Math.round(score)}%
           </div>
-          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, marginTop: 2, marginBottom: 6 }}>
+          <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 600, marginTop: 2, marginBottom: 6 }}>
             {band}
           </div>
         </>
@@ -189,6 +192,7 @@ function ChartTooltip({ active, payload, label }: {
 
 // ─── Competency breakdown card ────────────────────────────────────────────────
 function CompBreakdown({ rev }: { rev: Review }) {
+  const { theme } = useTheme();
   const beh    = rev.leadReview?.behavioral ?? {};
   const fun    = rev.leadReview?.functional ?? {};
   const hasBeh = Object.keys(beh).length > 0;
@@ -209,10 +213,10 @@ function CompBreakdown({ rev }: { rev: Review }) {
     .sort((a, b) => a.score - b.score);
 
   function CompRow({ label, score }: { label: string; score: number }) {
-    const color = score > 0 ? SC_COLORS[score] : C.textDim;
+    const color = score > 0 ? SC_COLORS[score] : theme.textDim;
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <div style={{ flex: 1, color: C.textMuted, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.3 }}>
+        <div style={{ flex: 1, color: theme.textMuted, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.3 }}>
           {label}
         </div>
         <div style={{ width: 80, height: 6, background: '#0c2035', borderRadius: 3, flexShrink: 0, position: 'relative' as const, overflow: 'hidden' }}>
@@ -233,15 +237,15 @@ function CompBreakdown({ rev }: { rev: Review }) {
   }) {
     return (
       <div style={{ flex: 1, minWidth: 200 }}>
-        <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 12, fontFamily: 'Montserrat, sans-serif' }}>
+        <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 12, fontFamily: 'Montserrat, sans-serif' }}>
           {title}
         </div>
         {rows.map(r => <CompRow key={r.label} label={r.label} score={r.score} />)}
-        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
-          <span style={{ color: BAND_COLORS[band as keyof typeof BAND_COLORS] ?? C.textMuted, fontSize: 12, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${theme.border}` }}>
+          <span style={{ color: BAND_COLORS[band as keyof typeof BAND_COLORS] ?? theme.textMuted, fontSize: 12, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
             {Math.round(secPct)}%
           </span>
-          <span style={{ color: C.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginLeft: 6 }}>
+          <span style={{ color: theme.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginLeft: 6 }}>
             — {band}
           </span>
         </div>
@@ -251,12 +255,12 @@ function CompBreakdown({ rev }: { rev: Review }) {
 
   return (
     <div style={{ marginBottom: 28 }}>
-      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+      <div style={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 12, padding: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap' as const, gap: 8 }}>
-          <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
+          <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
             🎯 Latest Competency Breakdown
           </div>
-          <div style={{ color: C.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+          <div style={{ color: theme.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
             {rev.period}
           </div>
         </div>
@@ -280,6 +284,8 @@ export default function EmployeeDashboard({
   saveReminders,
   showToast,
 }: EmployeeDashboardProps) {
+
+  const { theme } = useTheme();
 
   // ── Name selector state ────────────────────────────────────────────────────
   const [hovered, setHovered] = useState<string | null>(null);
@@ -423,7 +429,7 @@ export default function EmployeeDashboard({
         <div
           style={{
             padding:      '20px 32px 16px',
-            borderBottom: `1px solid ${C.border}`,
+            borderBottom: `1px solid ${theme.border}`,
             display:      'flex',
             alignItems:   'flex-start',
             justifyContent: 'space-between',
@@ -433,7 +439,7 @@ export default function EmployeeDashboard({
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <h1
                 style={{
-                  color:         C.textPrimary,
+                  color:         theme.textPrimary,
                   fontSize:      20,
                   fontWeight:    800,
                   letterSpacing: '-0.01em',
@@ -462,7 +468,7 @@ export default function EmployeeDashboard({
             {subtitle ? (
               <p
                 style={{
-                  color:      C.textMuted,
+                  color:      theme.textMuted,
                   fontSize:   12,
                   fontWeight: 500,
                   margin:     '4px 0 0',
@@ -477,9 +483,9 @@ export default function EmployeeDashboard({
             onClick={() => setEmpName('')}
             style={{
               background:   'transparent',
-              border:       `1px solid ${C.border}`,
+              border:       `1px solid ${theme.border}`,
               borderRadius: 6,
-              color:        C.textMuted,
+              color:        theme.textMuted,
               fontSize:     11,
               fontWeight:   700,
               cursor:       'pointer',
@@ -517,7 +523,7 @@ export default function EmployeeDashboard({
                 }}
               >
                 <span style={{ fontSize: 13 }}>🔔</span>
-                <span style={{ color: C.textPrimary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+                <span style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
                   Notifications
                 </span>
                 <span
@@ -549,10 +555,10 @@ export default function EmployeeDashboard({
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.4 }}>
+                      <div style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.4 }}>
                         {rem.message}
                       </div>
-                      <div style={{ color: C.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
+                      <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
                         {rem.sentAt}
                       </div>
                     </div>
@@ -578,9 +584,9 @@ export default function EmployeeDashboard({
                         onClick={() => markRead(rem.id)}
                         style={{
                           background:   'transparent',
-                          border:       `1px solid ${C.border}`,
+                          border:       `1px solid ${theme.border}`,
                           borderRadius: 5,
-                          color:        C.textDim,
+                          color:        theme.textDim,
                           fontSize:     10,
                           fontWeight:   700,
                           cursor:       'pointer',
@@ -637,11 +643,11 @@ export default function EmployeeDashboard({
                   }}
                 >
                   <div>
-                    <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+                    <div style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
                       {rev.period}
                     </div>
                     {rev.jobTitle && (
-                      <div style={{ color: C.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
+                      <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
                         {rev.jobTitle}
                       </div>
                     )}
@@ -711,11 +717,11 @@ export default function EmployeeDashboard({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <StatusPill status={rev.status} />
                     <div>
-                      <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+                      <div style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
                         {rev.period}
                       </div>
                       {rev.jobTitle && (
-                        <div style={{ color: C.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
+                        <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
                           {rev.jobTitle}
                         </div>
                       )}
@@ -749,17 +755,17 @@ export default function EmployeeDashboard({
             <StatCard
               label="Pending"
               value={drafts.length}
-              color={drafts.length > 0 ? C.warning : C.textDim}
+              color={drafts.length > 0 ? C.warning : theme.textDim}
             />
             <StatCard
               label="In Progress"
               value={inProgressRevs.length}
-              color={inProgressRevs.length > 0 ? C.blue : C.textDim}
+              color={inProgressRevs.length > 0 ? C.blue : theme.textDim}
             />
             <StatCard
               label="Latest Score"
               value={latestScore !== null ? `${Math.round(latestScore)}%` : '—'}
-              color={latestScore !== null ? BAND_COLORS[getBand(latestScore)] : C.textDim}
+              color={latestScore !== null ? BAND_COLORS[getBand(latestScore)] : theme.textDim}
               sub={latestScore !== null ? getBand(latestScore) : undefined}
             />
           </div>
@@ -768,29 +774,29 @@ export default function EmployeeDashboard({
           {trendData.length >= 2 && (
             <div style={{ marginBottom: 28 }}>
               <div style={{ background: '#071523', border: '1px solid #0c2035', borderRadius: 12, padding: 20 }}>
-                <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', marginBottom: 16 }}>
+                <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', marginBottom: 16 }}>
                   📊 Performance Summary
                 </div>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' as const }}>
-                  <div style={{ flex: 1, minWidth: 100, background: C.appBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Best Score</div>
+                  <div style={{ flex: 1, minWidth: 100, background: theme.bg, border: `1px solid ${theme.border}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Best Score</div>
                     <div style={{ color: BAND_COLORS[getBand(bestScore)], fontSize: 24, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', lineHeight: 1 }}>{bestScore}%</div>
-                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>{getBand(bestScore)}</div>
+                    <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>{getBand(bestScore)}</div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 100, background: C.appBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Latest Score</div>
+                  <div style={{ flex: 1, minWidth: 100, background: theme.bg, border: `1px solid ${theme.border}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Latest Score</div>
                     <div style={{ color: BAND_COLORS[getBand(latestTrendScore)], fontSize: 24, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', lineHeight: 1 }}>{latestTrendScore}%</div>
-                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>{getBand(latestTrendScore)}</div>
+                    <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>{getBand(latestTrendScore)}</div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 100, background: C.appBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Average Score</div>
+                  <div style={{ flex: 1, minWidth: 100, background: theme.bg, border: `1px solid ${theme.border}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Average Score</div>
                     <div style={{ color: BAND_COLORS[getBand(sumAvg)], fontSize: 24, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', lineHeight: 1 }}>{sumAvg}%</div>
-                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>{getBand(sumAvg)}</div>
+                    <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>{getBand(sumAvg)}</div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 100, background: C.appBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Trend</div>
+                  <div style={{ flex: 1, minWidth: 100, background: theme.bg, border: `1px solid ${theme.border}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontFamily: 'Montserrat, sans-serif', marginBottom: 6 }}>Trend</div>
                     <div style={{ color: trendColor, fontSize: 18, fontWeight: 800, fontFamily: 'Montserrat, sans-serif', lineHeight: 1 }}>{trendLabel}</div>
-                    <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>vs. previous period</div>
+                    <div style={{ color: theme.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif', marginTop: 4 }}>vs. previous period</div>
                   </div>
                 </div>
               </div>
@@ -803,11 +809,11 @@ export default function EmployeeDashboard({
               <div style={{ background: '#071523', border: '1px solid #0c2035', borderRadius: 12, padding: 20 }}>
                 {/* Title row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap' as const, gap: 8 }}>
-                  <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
+                  <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 800, fontFamily: 'Montserrat, sans-serif' }}>
                     📈 Performance Trend
                   </div>
                   {periodRange && (
-                    <div style={{ color: C.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+                    <div style={{ color: theme.textDim, fontSize: 11, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
                       {periodRange}
                     </div>
                   )}
@@ -816,22 +822,27 @@ export default function EmployeeDashboard({
                 {/* Chart */}
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#0f1e32" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={theme.border} />
                     <XAxis
                       dataKey="period"
-                      tick={{ fill: '#334155', fontSize: 10, fontFamily: 'Montserrat, sans-serif' }}
+                      tick={{ fill: theme.textDim, fontSize: 10, fontFamily: 'Montserrat, sans-serif' }}
                       axisLine={false}
                       tickLine={false}
                     />
                     <YAxis
                       domain={[0, 100]}
                       tickFormatter={(v: number) => `${v}%`}
-                      tick={{ fill: '#334155', fontSize: 10, fontFamily: 'Montserrat, sans-serif' }}
+                      tick={{ fill: theme.textDim, fontSize: 10, fontFamily: 'Montserrat, sans-serif' }}
                       axisLine={false}
                       tickLine={false}
                       width={36}
                     />
-                    <Tooltip content={<ChartTooltip />} />
+                    <Tooltip
+                      content={<ChartTooltip />}
+                      contentStyle={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 8, fontFamily: 'Montserrat, sans-serif' }}
+                      labelStyle={{ color: theme.textMuted, fontSize: 11 }}
+                      itemStyle={{ color: theme.textPrimary }}
+                    />
                     <ReferenceLine y={90} stroke="#10b981" strokeDasharray="4 4" strokeOpacity={0.7}
                       label={{ value: 'Exceptional', fill: '#10b981', fontSize: 8, fontFamily: 'Montserrat, sans-serif', position: 'insideTopRight' }} />
                     <ReferenceLine y={80} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.7}
@@ -887,14 +898,14 @@ export default function EmployeeDashboard({
                       <svg width={24} height={2} style={{ flexShrink: 0 }}>
                         <line x1="0" y1="1" x2="24" y2="1" stroke={color} strokeWidth={dash ? 1.5 : 2.5} strokeDasharray={dash ? '5 3' : undefined} />
                       </svg>
-                      <span style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>{label}</span>
+                      <span style={{ color: theme.textMuted, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>{label}</span>
                     </div>
                   ))}
                 </div>
 
                 {/* Single-point hint */}
                 {trendData.length === 1 && (
-                  <div style={{ marginTop: 12, textAlign: 'center', color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
+                  <div style={{ marginTop: 12, textAlign: 'center', color: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 500 }}>
                     Complete more review cycles to see your trend
                   </div>
                 )}
@@ -910,7 +921,7 @@ export default function EmployeeDashboard({
             <div>
               <div
                 style={{
-                  color:         C.textDim,
+                  color:         theme.textDim,
                   fontSize:      10,
                   fontWeight:    700,
                   letterSpacing: '0.1em',
@@ -935,11 +946,11 @@ export default function EmployeeDashboard({
               style={{
                 padding:    '40px 24px',
                 textAlign:  'center',
-                color:      C.textDim,
+                color:      theme.textDim,
                 fontSize:   12,
                 fontFamily: 'Montserrat, sans-serif',
-                background: C.cardBg,
-                border:     `1px solid ${C.border}`,
+                background: theme.card,
+                border:     `1px solid ${theme.border}`,
                 borderRadius: 10,
               }}
             >
@@ -961,12 +972,12 @@ export default function EmployeeDashboard({
       <div
         style={{
           padding:      '20px 32px 16px',
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${theme.border}`,
         }}
       >
         <h1
           style={{
-            color:         C.textPrimary,
+            color:         theme.textPrimary,
             fontSize:      20,
             fontWeight:    800,
             letterSpacing: '-0.01em',
@@ -978,7 +989,7 @@ export default function EmployeeDashboard({
         </h1>
         <p
           style={{
-            color:      C.textMuted,
+            color:      theme.textMuted,
             fontSize:   12,
             fontWeight: 500,
             margin:     '4px 0 0',
@@ -997,7 +1008,7 @@ export default function EmployeeDashboard({
           {/* ── Name selector section ────────────────────────────────────────── */}
           <div
             style={{
-              color:         C.textDim,
+              color:         theme.textDim,
               fontSize:      10,
               fontWeight:    700,
               letterSpacing: '0.1em',
@@ -1017,8 +1028,8 @@ export default function EmployeeDashboard({
             uniqueNames.map(name => {
               const d         = buildNameData(name, reviews, reminders);
               const isHov     = hovered === name;
-              const borderCol = isHov ? QVT_BLUE : d.hasDraft ? '#d97706' : C.border;
-              const bgCol     = d.hasDraft ? '#d9770610' : C.cardBg;
+              const borderCol = isHov ? QVT_BLUE : d.hasDraft ? '#d97706' : theme.border;
+              const bgCol     = d.hasDraft ? '#d9770610' : theme.card;
               const initial   = name.charAt(0).toUpperCase();
               const subtitle  = [d.jobTitle, d.department].filter(Boolean).join(' · ');
 
@@ -1078,7 +1089,7 @@ export default function EmployeeDashboard({
                     >
                       <span
                         style={{
-                          color:      C.textPrimary,
+                          color:      theme.textPrimary,
                           fontSize:   13,
                           fontWeight: 700,
                           fontFamily: 'Montserrat, sans-serif',
@@ -1092,7 +1103,7 @@ export default function EmployeeDashboard({
                     {subtitle && (
                       <div
                         style={{
-                          color:         C.textDim,
+                          color:         theme.textDim,
                           fontSize:      11,
                           fontWeight:    500,
                           fontFamily:    'Montserrat, sans-serif',
@@ -1173,7 +1184,7 @@ export default function EmployeeDashboard({
               {/* Subtitle */}
               <div
                 style={{
-                  color:        C.textMuted,
+                  color:        theme.textMuted,
                   fontSize:     12,
                   fontWeight:   500,
                   marginBottom: 18,

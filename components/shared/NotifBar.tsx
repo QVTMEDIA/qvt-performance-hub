@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Reminder, Role } from '@/types';
-import { C } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 import { ROLE_META } from '@/lib/constants';
 
 interface NotifBarProps {
@@ -16,6 +16,7 @@ interface NotifBarProps {
 export default function NotifBar({
   reminders, role, onOpen, onDismiss, onMarkAllRead,
 }: NotifBarProps) {
+  const { theme } = useTheme();
   const [showAll, setShowAll] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -57,7 +58,7 @@ export default function NotifBar({
         background:   `${roleColor}18`,
       }}>
         <span style={{ fontSize: 14 }}>🔔</span>
-        <span style={{ color: C.textPrimary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+        <span style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
           Notifications
         </span>
         <span style={{
@@ -120,7 +121,7 @@ export default function NotifBar({
                 {rem.message}
               </div>
               <div style={{
-                color:      C.textDim,
+                color:      theme.textDim,
                 fontSize:   10,
                 fontWeight: 500,
                 fontFamily: 'Montserrat, sans-serif',
@@ -153,9 +154,9 @@ export default function NotifBar({
                 onClick={() => onDismiss(rem.id)}
                 style={{
                   background:   'transparent',
-                  border:       `1px solid ${C.border}`,
+                  border:       `1px solid ${theme.border}`,
                   borderRadius: 5,
-                  color:        C.textDim,
+                  color:        theme.textDim,
                   fontSize:     12,
                   fontWeight:   700,
                   cursor:       'pointer',

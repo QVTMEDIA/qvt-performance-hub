@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getBand } from '@/lib/scoring';
-import { BAND_COLORS, C } from '@/styles/brand';
+import { BAND_COLORS } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface RingProps {
   pct: number;
@@ -10,6 +11,7 @@ interface RingProps {
 }
 
 export default function Ring({ pct, size = 80 }: RingProps) {
+  const { theme } = useTheme();
   const [displayed, setDisplayed] = useState(0);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function Ring({ pct, size = 80 }: RingProps) {
   const circumference = 2 * Math.PI * r;
   const offset = circumference * (1 - displayed / 100);
   const band = getBand(pct);
-  const color = pct > 0 ? BAND_COLORS[band] : C.textDim;
+  const color = pct > 0 ? BAND_COLORS[band] : theme.textDim;
 
   return (
     <svg
@@ -34,7 +36,7 @@ export default function Ring({ pct, size = 80 }: RingProps) {
       <circle
         cx="50" cy="50" r={r}
         fill="none"
-        stroke={C.border}
+        stroke={theme.border}
         strokeWidth="8"
       />
       {/* Value arc */}
@@ -66,7 +68,7 @@ export default function Ring({ pct, size = 80 }: RingProps) {
         x="50" y="63"
         textAnchor="middle"
         dominantBaseline="central"
-        fill={C.textMuted}
+        fill={theme.textMuted}
         fontSize="10"
         fontFamily="Montserrat, sans-serif"
         fontWeight="600"

@@ -4,6 +4,7 @@ import { Review } from '@/types';
 import { AppContext } from '@/components/AppShell';
 import { STATUS_ORDER } from '@/lib/constants';
 import { C } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 import StatCard  from '@/components/atoms/StatCard';
 import StatusPill from '@/components/atoms/StatusPill';
 import NotifBar  from '@/components/shared/NotifBar';
@@ -16,10 +17,10 @@ interface HRDashboardProps {
   ctx: AppContext;
 }
 
-function SectionLabel({ label }: { label: string }) {
+function SectionLabel({ label, textDim }: { label: string; textDim: string }) {
   return (
     <div style={{
-      color: C.textDim, fontSize: 10, fontWeight: 700,
+      color: textDim, fontSize: 10, fontWeight: 700,
       letterSpacing: '0.1em', textTransform: 'uppercase',
       marginBottom: 12, fontFamily: 'Montserrat, sans-serif',
     }}>
@@ -28,12 +29,12 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-function EmptySlot({ message }: { message: string }) {
+function EmptySlot({ message, textDim, card, border }: { message: string; textDim: string; card: string; border: string }) {
   return (
     <div style={{
-      padding: '32px 24px', textAlign: 'center', color: C.textDim,
+      padding: '32px 24px', textAlign: 'center', color: textDim,
       fontSize: 12, fontFamily: 'Montserrat, sans-serif',
-      background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 10,
+      background: card, border: `1px solid ${border}`, borderRadius: 10,
     }}>
       {message}
     </div>
@@ -42,6 +43,7 @@ function EmptySlot({ message }: { message: string }) {
 
 export default function HRDashboard({ ctx }: HRDashboardProps) {
   const { reviews, reminders, openReview, saveReminders, addRem, showToast } = ctx;
+  const { theme } = useTheme();
 
   // Reviews awaiting HR (Team Lead has submitted)
   const awaiting  = reviews.filter(r => r.status === 'lead_done');
@@ -82,11 +84,11 @@ export default function HRDashboard({ ctx }: HRDashboardProps) {
   return (
     <div>
       {/* Header */}
-      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
-        <h1 style={{ color: C.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${theme.border}` }}>
+        <h1 style={{ color: theme.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>
           <span style={{ color: HR_COLOR }}>People Lead (HR)</span> Dashboard
         </h1>
-        <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '4px 0 0', fontFamily: 'Montserrat, sans-serif' }}>
+        <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '4px 0 0', fontFamily: 'Montserrat, sans-serif' }}>
           QVT Media Performance Hub · {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
@@ -99,16 +101,16 @@ export default function HRDashboard({ ctx }: HRDashboardProps) {
         {/* Stat Cards */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
           <StatCard label="Total Reviews"  value={reviews.length} />
-          <StatCard label="Awaiting HR"    value={awaiting.length}  color={awaiting.length  > 0 ? HR_COLOR  : C.textDim} />
-          <StatCard label="In Progress"    value={pipeline.length}  color={pipeline.length  > 0 ? C.blue    : C.textDim} />
-          <StatCard label="Completed"      value={completed.length} color={completed.length > 0 ? C.success : C.textDim} />
+          <StatCard label="Awaiting HR"    value={awaiting.length}  color={awaiting.length  > 0 ? HR_COLOR  : theme.textDim} />
+          <StatCard label="In Progress"    value={pipeline.length}  color={pipeline.length  > 0 ? C.blue    : theme.textDim} />
+          <StatCard label="Completed"      value={completed.length} color={completed.length > 0 ? C.success : theme.textDim} />
         </div>
 
         {/* ⚡ Awaiting HR Review */}
         <div style={{ marginBottom: 28 }}>
-          <SectionLabel label="⚡ Awaiting HR Review" />
+          <SectionLabel label="⚡ Awaiting HR Review" textDim={theme.textDim} />
           {awaiting.length === 0 ? (
-            <EmptySlot message="No reviews awaiting HR assessment." />
+            <EmptySlot message="No reviews awaiting HR assessment." textDim={theme.textDim} card={theme.card} border={theme.border} />
           ) : (
             awaiting.map(rev => (
               <RevRow key={rev.id} review={rev} onOpen={() => openReview(rev)} ctaLabel="Start HR Review →" />
@@ -119,7 +121,7 @@ export default function HRDashboard({ ctx }: HRDashboardProps) {
         {/* 📋 Pipeline — grouped by status */}
         {pipeline.length > 0 && (
           <div style={{ marginBottom: 28 }}>
-            <SectionLabel label="📋 Pipeline" />
+            <SectionLabel label="📋 Pipeline" textDim={theme.textDim} />
             {pipelineStatuses.map(status => (
               <div key={status} style={{ marginBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -136,7 +138,7 @@ export default function HRDashboard({ ctx }: HRDashboardProps) {
         {/* ✅ Completed */}
         {completed.length > 0 && (
           <div style={{ marginBottom: 28 }}>
-            <SectionLabel label="✅ Completed" />
+            <SectionLabel label="✅ Completed" textDim={theme.textDim} />
             <RevTable reviews={completed} onSelect={openReview} showScore />
           </div>
         )}
@@ -144,8 +146,8 @@ export default function HRDashboard({ ctx }: HRDashboardProps) {
         {/* 📨 HR Reminder Panel — draft reviews */}
         {drafts.length > 0 && (
           <div>
-            <SectionLabel label="📨 Pending Self-Reviews — Send Reminder" />
-            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+            <SectionLabel label="📨 Pending Self-Reviews — Send Reminder" textDim={theme.textDim} />
+            <div style={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 10, overflow: 'hidden' }}>
               {drafts.map((rev, i) => {
                 const isLast = i === drafts.length - 1;
                 return (
@@ -154,14 +156,14 @@ export default function HRDashboard({ ctx }: HRDashboardProps) {
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       gap: 16, padding: '12px 20px',
-                      borderBottom: isLast ? 'none' : `1px solid ${C.border}`,
+                      borderBottom: isLast ? 'none' : `1px solid ${theme.border}`,
                     }}
                   >
                     <div>
-                      <div style={{ color: C.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+                      <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
                         {rev.employeeName}
                       </div>
-                      <div style={{ color: C.textDim, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
+                      <div style={{ color: theme.textDim, fontSize: 11, fontWeight: 500, fontFamily: 'Montserrat, sans-serif', marginTop: 2 }}>
                         {rev.period}{rev.department ? ` · ${rev.department}` : ''}
                       </div>
                     </div>

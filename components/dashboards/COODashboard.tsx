@@ -3,6 +3,7 @@
 import { AppContext } from '@/components/AppShell';
 import { calcOverall, getBand } from '@/lib/scoring';
 import { C, BAND_COLORS, BANDS } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 import { STATUS_ORDER } from '@/lib/constants';
 import { Review } from '@/types';
 import StatCard   from '@/components/atoms/StatCard';
@@ -27,10 +28,10 @@ interface COODashboardProps {
   ctx: AppContext;
 }
 
-function SectionLabel({ label }: { label: string }) {
+function SectionLabel({ label, textDim }: { label: string; textDim: string }) {
   return (
     <div style={{
-      color: C.textDim, fontSize: 10, fontWeight: 700,
+      color: textDim, fontSize: 10, fontWeight: 700,
       letterSpacing: '0.1em', textTransform: 'uppercase',
       marginBottom: 12, fontFamily: 'Montserrat, sans-serif',
     }}>
@@ -39,12 +40,12 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-function EmptySlot({ message }: { message: string }) {
+function EmptySlot({ message, textDim, card, border }: { message: string; textDim: string; card: string; border: string }) {
   return (
     <div style={{
-      padding: '32px 24px', textAlign: 'center', color: C.textDim,
+      padding: '32px 24px', textAlign: 'center', color: textDim,
       fontSize: 12, fontFamily: 'Montserrat, sans-serif',
-      background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 10,
+      background: card, border: `1px solid ${border}`, borderRadius: 10,
     }}>
       {message}
     </div>
@@ -58,6 +59,7 @@ function revScore(rev: Review): number {
 
 export default function COODashboard({ ctx }: COODashboardProps) {
   const { reviews, reminders, openReview, saveReminders } = ctx;
+  const { theme } = useTheme();
 
   const awaiting  = reviews.filter(r => r.status === 'hr_done');
   const pipeline  = reviews.filter(r => !['draft', 'hr_done', 'completed'].includes(r.status));
@@ -102,14 +104,14 @@ export default function COODashboard({ ctx }: COODashboardProps) {
   return (
     <div>
       {/* Header */}
-      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ padding: '20px 32px 16px', borderBottom: `1px solid ${theme.border}` }}>
         <h1 style={{
-          color: C.textPrimary, fontSize: 20, fontWeight: 800,
+          color: theme.textPrimary, fontSize: 20, fontWeight: 800,
           letterSpacing: '-0.01em', margin: 0, fontFamily: 'Montserrat, sans-serif',
         }}>
           <span style={{ color: COO_COLOR }}>COO</span> Dashboard
         </h1>
-        <p style={{ color: C.textMuted, fontSize: 12, fontWeight: 500, margin: '4px 0 0', fontFamily: 'Montserrat, sans-serif' }}>
+        <p style={{ color: theme.textMuted, fontSize: 12, fontWeight: 500, margin: '4px 0 0', fontFamily: 'Montserrat, sans-serif' }}>
           QVT Media Performance Hub · {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
@@ -122,9 +124,9 @@ export default function COODashboard({ ctx }: COODashboardProps) {
         {/* Stat Cards — Row 1 */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
           <StatCard label="Total Appraisals"      value={reviews.length} />
-          <StatCard label="Awaiting COO Review"   value={awaiting.length}  color={awaiting.length  > 0 ? COO_COLOR : C.textDim} />
-          <StatCard label="Pending in Pipeline"   value={pipeline.length}  color={pipeline.length  > 0 ? C.blue    : C.textDim} />
-          <StatCard label="Completed This Period" value={completed.length} color={completed.length > 0 ? C.success : C.textDim} />
+          <StatCard label="Awaiting COO Review"   value={awaiting.length}  color={awaiting.length  > 0 ? COO_COLOR : theme.textDim} />
+          <StatCard label="Pending in Pipeline"   value={pipeline.length}  color={pipeline.length  > 0 ? C.blue    : theme.textDim} />
+          <StatCard label="Completed This Period" value={completed.length} color={completed.length > 0 ? C.success : theme.textDim} />
         </div>
 
         {/* Stat Cards — Row 2 */}
@@ -132,22 +134,22 @@ export default function COODashboard({ ctx }: COODashboardProps) {
           <StatCard
             label="Org Average Score"
             value={orgAvgPct > 0 ? `${orgAvgPct}%` : '—'}
-            color={orgBand ? BAND_COLORS[orgBand] : C.textDim}
+            color={orgBand ? BAND_COLORS[orgBand] : theme.textDim}
             sub={orgBand ?? undefined}
           />
           <StatCard
             label="Top Performer"
             value={topRev ? topRev.employeeName : '—'}
-            color={topScore > 0 ? BAND_COLORS[getBand(topScore)] : C.textDim}
+            color={topScore > 0 ? BAND_COLORS[getBand(topScore)] : theme.textDim}
             sub={topScore > 0 ? `${topScore}%` : undefined}
           />
         </div>
 
         {/* ⚡ Awaiting COO Review */}
         <div style={{ marginBottom: 28 }}>
-          <SectionLabel label="⚡ Awaiting COO Review" />
+          <SectionLabel label="⚡ Awaiting COO Review" textDim={theme.textDim} />
           {awaiting.length === 0 ? (
-            <EmptySlot message="No reviews awaiting COO assessment." />
+            <EmptySlot message="No reviews awaiting COO assessment." textDim={theme.textDim} card={theme.card} border={theme.border} />
           ) : (
             awaiting.map(rev => {
               const rec = rev.leadReview?.text?.recommendation;
@@ -156,7 +158,7 @@ export default function COODashboard({ ctx }: COODashboardProps) {
                   <RevRow review={rev} onOpen={() => openReview(rev)} ctaLabel="Review →" />
                   {rec && (
                     <div style={{ marginTop: -2, paddingLeft: 12, paddingBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ color: C.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
+                      <span style={{ color: theme.textDim, fontSize: 10, fontWeight: 600, fontFamily: 'Montserrat, sans-serif' }}>
                         Lead Recommendation:
                       </span>
                       <span style={{
@@ -179,7 +181,7 @@ export default function COODashboard({ ctx }: COODashboardProps) {
         {/* 📋 Active Pipeline — grouped by status */}
         {pipeline.length > 0 && (
           <div style={{ marginBottom: 28 }}>
-            <SectionLabel label="📋 Active Pipeline" />
+            <SectionLabel label="📋 Active Pipeline" textDim={theme.textDim} />
             {pipelineStatuses.map(status => (
               <div key={status} style={{ marginBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -196,31 +198,31 @@ export default function COODashboard({ ctx }: COODashboardProps) {
         {/* 📊 Performance Distribution — shown when 3+ scored completed */}
         {scored.length >= 3 && (
           <div style={{ marginBottom: 28 }}>
-            <SectionLabel label="📊 Performance Distribution" />
+            <SectionLabel label="📊 Performance Distribution" textDim={theme.textDim} />
             <div style={{
-              background: C.cardBg, border: `1px solid ${C.border}`,
+              background: theme.card, border: `1px solid ${theme.border}`,
               borderRadius: 10, padding: '20px 16px',
             }}>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={distData} barCategoryGap="35%">
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme.border} vertical={false} />
                   <XAxis
                     dataKey="band"
-                    tick={{ fill: C.textMuted, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}
-                    axisLine={{ stroke: C.border }}
+                    tick={{ fill: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}
+                    axisLine={{ stroke: theme.border }}
                     tickLine={false}
                   />
                   <YAxis
                     allowDecimals={false}
-                    tick={{ fill: C.textMuted, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}
+                    tick={{ fill: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}
                     axisLine={false}
                     tickLine={false}
                     width={24}
                   />
                   <Tooltip
-                    contentStyle={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 8 }}
-                    labelStyle={{ color: C.textPrimary, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', fontSize: 12 }}
-                    itemStyle={{ color: C.textMuted, fontFamily: 'Montserrat, sans-serif', fontSize: 11 }}
+                    contentStyle={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 8, fontFamily: 'Montserrat, sans-serif' }}
+                    labelStyle={{ color: theme.textMuted, fontSize: 11 }}
+                    itemStyle={{ color: theme.textPrimary }}
                     formatter={(v: number | undefined) => [`${v ?? 0} employee${v !== 1 ? 's' : ''}`, 'Count']}
                   />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
@@ -237,7 +239,7 @@ export default function COODashboard({ ctx }: COODashboardProps) {
         {/* ✅ Completed Appraisals */}
         {completed.length > 0 && (
           <div>
-            <SectionLabel label="✅ Completed Appraisals" />
+            <SectionLabel label="✅ Completed Appraisals" textDim={theme.textDim} />
             <RevTable reviews={completed} onSelect={openReview} showScore />
           </div>
         )}

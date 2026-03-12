@@ -1,7 +1,8 @@
 'use client';
 
 import { Competency } from '@/lib/constants';
-import { SC_COLORS, SC_LABELS, C } from '@/styles/brand';
+import { SC_COLORS, SC_LABELS } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 import ScoreBtns from '@/components/atoms/ScoreBtns';
 
 interface SelfScoreTableProps {
@@ -22,6 +23,7 @@ export default function SelfScoreTable({
   readonly = false,
   selfScores,
 }: SelfScoreTableProps) {
+  const { theme } = useTheme();
   const scored = comps.filter((c) => scores[c.key] !== undefined).length;
   const showCompare = !!selfScores && !readonly;
 
@@ -34,14 +36,14 @@ export default function SelfScoreTable({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '10px 16px',
-          background: `${C.textDim}18`,
+          background: `${theme.textDim}18`,
           borderRadius: '8px 8px 0 0',
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${theme.border}`,
         }}
       >
         <span
           style={{
-            color: C.textPrimary,
+            color: theme.textPrimary,
             fontSize: 12,
             fontWeight: 800,
             letterSpacing: '0.02em',
@@ -53,10 +55,10 @@ export default function SelfScoreTable({
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {showCompare && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ color: C.textDim, fontSize: 10, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.06em' }}>
+              <span style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.06em' }}>
                 SELF
               </span>
-              <span style={{ color: C.textDim, fontSize: 10, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.06em' }}>
+              <span style={{ color: theme.textDim, fontSize: 10, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.06em' }}>
                 AGREED
               </span>
             </div>
@@ -64,7 +66,7 @@ export default function SelfScoreTable({
           {!readonly && (
             <span
               style={{
-                color: scored === comps.length ? '#22c55e' : C.textMuted,
+                color: scored === comps.length ? '#22c55e' : theme.textMuted,
                 fontSize: 11,
                 fontWeight: 700,
                 fontFamily: 'Montserrat, sans-serif',
@@ -79,7 +81,7 @@ export default function SelfScoreTable({
       {/* Table */}
       <div
         style={{
-          border: `1px solid ${C.border}`,
+          border: `1px solid ${theme.border}`,
           borderTop: 'none',
           borderRadius: '0 0 8px 8px',
           overflow: 'hidden',
@@ -100,14 +102,14 @@ export default function SelfScoreTable({
                 alignItems: 'center',
                 gap: 12,
                 padding: '10px 16px',
-                background: i % 2 === 0 ? C.cardBg : `${C.sidebarBg}60`,
-                borderBottom: isLast ? 'none' : `1px solid ${C.border}`,
+                background: i % 2 === 0 ? theme.card : `${theme.sidebar}60`,
+                borderBottom: isLast ? 'none' : `1px solid ${theme.border}`,
               }}
             >
               {/* Row number */}
               <span
                 style={{
-                  color: C.textDim,
+                  color: theme.textDim,
                   fontSize: 10,
                   fontWeight: 700,
                   width: 18,
@@ -122,7 +124,7 @@ export default function SelfScoreTable({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
-                    color: C.textPrimary,
+                    color: theme.textPrimary,
                     fontSize: 12,
                     fontWeight: 600,
                     fontFamily: 'Montserrat, sans-serif',
@@ -135,7 +137,7 @@ export default function SelfScoreTable({
                 </div>
                 <div
                   style={{
-                    color: C.textDim,
+                    color: theme.textDim,
                     fontSize: 10,
                     fontWeight: 500,
                     fontFamily: 'Montserrat, sans-serif',
@@ -174,7 +176,7 @@ export default function SelfScoreTable({
                       </span>
                       <span
                         style={{
-                          color: C.textMuted,
+                          color: theme.textMuted,
                           fontSize: 10,
                           fontWeight: 600,
                           fontFamily: 'Montserrat, sans-serif',
@@ -184,7 +186,7 @@ export default function SelfScoreTable({
                       </span>
                     </>
                   ) : (
-                    <span style={{ color: C.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>—</span>
+                    <span style={{ color: theme.textDim, fontSize: 11, fontFamily: 'Montserrat, sans-serif' }}>—</span>
                   )}
                 </div>
               ) : (
@@ -200,8 +202,8 @@ export default function SelfScoreTable({
                         height: 30,
                         borderRadius: 6,
                         background: selfVal ? `${selfColor}15` : 'transparent',
-                        border: `1px dashed ${selfVal ? selfColor + '60' : C.border}`,
-                        color: selfVal ? selfColor : C.textDim,
+                        border: `1px dashed ${selfVal ? selfColor + '60' : theme.border}`,
+                        color: selfVal ? selfColor : theme.textDim,
                         fontSize: 12,
                         fontWeight: 800,
                         fontFamily: 'Montserrat, sans-serif',

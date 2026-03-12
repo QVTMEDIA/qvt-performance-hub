@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { C, QVT_BLUE } from '@/styles/brand';
+import { QVT_BLUE } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface TxtProps {
   label: string;
@@ -20,13 +21,14 @@ export default function Txt({
   rows = 4,
   placeholder,
 }: TxtProps) {
+  const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <label
         style={{
-          color: readonly ? C.textDim : C.textMuted,
+          color: readonly ? theme.textDim : theme.textMuted,
           fontSize: 10,
           fontWeight: 700,
           letterSpacing: '0.08em',
@@ -45,11 +47,11 @@ export default function Txt({
         placeholder={readonly ? undefined : placeholder}
         readOnly={readonly}
         style={{
-          background: readonly ? `${C.cardBg}80` : C.cardBg,
-          border: `1px solid ${focused && !readonly ? QVT_BLUE : C.border}`,
+          background: readonly ? `${theme.input}80` : theme.input,
+          border: `1px solid ${focused && !readonly ? QVT_BLUE : theme.inputBorder}`,
           borderRadius: 6,
           padding: '9px 12px',
-          color: readonly ? C.textMuted : C.textPrimary,
+          color: readonly ? theme.textMuted : theme.textPrimary,
           fontSize: 12,
           fontWeight: 500,
           fontFamily: 'Montserrat, sans-serif',

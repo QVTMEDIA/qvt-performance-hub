@@ -3,6 +3,7 @@
 import { Review } from '@/types';
 import { calcSec, calcOverall, getBand } from '@/lib/scoring';
 import { BAND_COLORS, C } from '@/styles/brand';
+import { useTheme } from '@/lib/ThemeContext';
 import Ring from '@/components/atoms/Ring';
 
 interface OverallCardProps {
@@ -10,6 +11,7 @@ interface OverallCardProps {
 }
 
 export default function OverallCard({ review }: OverallCardProps) {
+  const { theme } = useTheme();
   const { selfReview, leadReview } = review;
 
   // Agreed scores take precedence
@@ -34,8 +36,8 @@ export default function OverallCard({ review }: OverallCardProps) {
     return (
       <div
         style={{
-          background: C.appBg,
-          border: `1px solid ${C.border}`,
+          background: theme.bg,
+          border: `1px solid ${theme.border}`,
           borderRadius: 8,
           padding: '12px 16px',
           flex: 1,
@@ -43,7 +45,7 @@ export default function OverallCard({ review }: OverallCardProps) {
       >
         <div
           style={{
-            color: C.textDim,
+            color: theme.textDim,
             fontSize: 10,
             fontWeight: 700,
             letterSpacing: '0.1em',
@@ -67,7 +69,7 @@ export default function OverallCard({ review }: OverallCardProps) {
         </div>
         <div
           style={{
-            color: C.textMuted,
+            color: theme.textMuted,
             fontSize: 10,
             fontWeight: 600,
             fontFamily: 'Montserrat, sans-serif',
@@ -83,8 +85,8 @@ export default function OverallCard({ review }: OverallCardProps) {
   return (
     <div
       style={{
-        background: C.cardBg,
-        border: `1px solid ${C.border}`,
+        background: theme.card,
+        border: `1px solid ${theme.border}`,
         borderRadius: 12,
         padding: '20px 24px',
         display: 'flex',
@@ -119,7 +121,7 @@ export default function OverallCard({ review }: OverallCardProps) {
         {/* Source indicator */}
         <div
           style={{
-            color: C.textDim,
+            color: theme.textDim,
             fontSize: 10,
             fontWeight: 600,
             fontFamily: 'Montserrat, sans-serif',
@@ -133,7 +135,7 @@ export default function OverallCard({ review }: OverallCardProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
               style={{
-                color: C.textDim,
+                color: theme.textDim,
                 fontSize: 10,
                 fontWeight: 700,
                 letterSpacing: '0.08em',

@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { signIn } from '@/lib/auth';
-import { useTheme } from '@/lib/ThemeContext';
 
 export default function LoginPage() {
-  const { theme, isDark } = useTheme();
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
+  const [hovering, setHovering] = useState(false);
+  const [focusEl,  setFocusEl]  = useState<'email' | 'password' | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,123 +30,188 @@ export default function LoginPage() {
     }
   };
 
-  const inputStyle: React.CSSProperties = {
+  const inputStyle = (field: 'email' | 'password'): React.CSSProperties => ({
     width: '100%',
-    padding: '10px 14px',
-    background: theme.input,
-    border: `1px solid ${theme.inputBorder}`,
+    padding: '12px 14px',
+    background: '#ffffff',
+    border: `1.5px solid ${focusEl === field ? '#29ABE2' : '#e0e0e0'}`,
     borderRadius: 8,
-    color: theme.textPrimary,
-    fontSize: 13,
+    color: '#1a1a1a',
+    fontSize: 14,
     fontFamily: 'Montserrat, sans-serif',
     outline: 'none',
     boxSizing: 'border-box',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
+    boxShadow: focusEl === field ? '0 0 0 3px rgba(41,171,226,0.15)' : 'none',
+  });
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    color: '#3D3D3D',
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    fontFamily: 'Montserrat, sans-serif',
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: theme.bg,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: 'Montserrat, sans-serif',
-      padding: 24,
-    }}>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        input::placeholder { color: #aaaaaa; }
+      `}</style>
+
       <div style={{
-        width: '100%',
-        maxWidth: 400,
-        background: theme.card,
-        border: `1px solid ${theme.border}`,
-        borderRadius: 16,
-        padding: '40px 36px',
+        minHeight: '100vh',
+        background: '#f0f4f8',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'Montserrat, sans-serif',
+        padding: 24,
       }}>
-        {/* Logo + Heading */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+        <div style={{
+          width: '100%',
+          maxWidth: 420,
+          background: '#ffffff',
+          borderRadius: 16,
+          boxShadow: '0 4px 32px rgba(0,0,0,0.10)',
+          padding: '48px 40px',
+        }}>
+
+          {/* Logo */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
             <Image
-              src={isDark ? '/logo-dark.png' : '/logo-light.png'}
+              src="/logo-light.png"
               alt="QVT Media"
               width={180}
               height={54}
-              style={{ objectFit: 'contain' }}
+              style={{ objectFit: 'contain', width: 180, height: 'auto' }}
               priority
             />
           </div>
-          <div style={{ color: '#0b73a8', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', marginBottom: 12 }}>
+
+          {/* Gradient divider */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <div style={{
+              width: 60,
+              height: 2,
+              background: 'linear-gradient(to right, #C1272D, #29ABE2)',
+              borderRadius: 1,
+            }} />
+          </div>
+
+          {/* Performance Hub label */}
+          <div style={{
+            textAlign: 'center',
+            fontFamily: 'Montserrat, sans-serif',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: '#29ABE2',
+            marginBottom: 6,
+          }}>
             Performance Hub
           </div>
-          <div style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>
+
+          {/* Subtitle */}
+          <div style={{
+            textAlign: 'center',
+            fontFamily: 'Montserrat, sans-serif',
+            fontSize: 13,
+            color: '#666666',
+            marginBottom: 32,
+          }}>
             Sign in to access your performance reviews
           </div>
-        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', color: theme.textSecondary, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@qvtmedia.com"
-              required
-              style={inputStyle}
-            />
-          </div>
-
-          <div style={{ marginBottom: 24 }}>
-            <label style={{ display: 'block', color: theme.textSecondary, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              style={inputStyle}
-            />
-          </div>
-
-          {error && (
-            <div style={{
-              background: '#dc262620',
-              border: '1px solid #dc262640',
-              borderRadius: 8,
-              padding: '10px 14px',
-              color: '#dc2626',
-              fontSize: 12,
-              marginBottom: 16,
-            }}>
-              {error}
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: 18 }}>
+              <label style={labelStyle}>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                onFocus={() => setFocusEl('email')}
+                onBlur={() => setFocusEl(null)}
+                placeholder="you@qvtmedia.com"
+                required
+                style={inputStyle('email')}
+              />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: loading ? '#0b73a880' : '#0b73a8',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 700,
-              fontFamily: 'Montserrat, sans-serif',
-              letterSpacing: '0.04em',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'background 0.15s',
-            }}
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+            <div style={{ marginBottom: 28 }}>
+              <label style={labelStyle}>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onFocus={() => setFocusEl('password')}
+                onBlur={() => setFocusEl(null)}
+                placeholder="••••••••"
+                required
+                style={inputStyle('password')}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              onMouseEnter={() => setHovering(true)}
+              onMouseLeave={() => setHovering(false)}
+              style={{
+                width: '100%',
+                padding: '13px',
+                background: loading
+                  ? 'linear-gradient(135deg, #1A5FA880 0%, #29ABE280 100%)'
+                  : hovering
+                  ? 'linear-gradient(135deg, #154d8a 0%, #1A5FA8 100%)'
+                  : 'linear-gradient(135deg, #1A5FA8 0%, #29ABE2 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 800,
+                fontFamily: 'Montserrat, sans-serif',
+                letterSpacing: '0.05em',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.2s',
+              }}
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+
+            {error && (
+              <div style={{
+                marginTop: 12,
+                color: '#C1272D',
+                fontSize: 12,
+                textAlign: 'center',
+                fontFamily: 'Montserrat, sans-serif',
+              }}>
+                {error}
+              </div>
+            )}
+          </form>
+
+          {/* Footer */}
+          <div style={{
+            marginTop: 28,
+            textAlign: 'center',
+            fontFamily: 'Montserrat, sans-serif',
+            fontSize: 10,
+            color: '#aaaaaa',
+          }}>
+            QVT Media Ltd — Confidential
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

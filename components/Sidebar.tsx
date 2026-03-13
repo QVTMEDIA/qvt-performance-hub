@@ -1,9 +1,10 @@
 'use client';
 
+import Image from 'next/image';
 import { Role, Reminder } from '@/types';
 import { ROLE_META } from '@/lib/constants';
 import { C, QVT_BLUE } from '@/styles/brand';
-import { ViewType, QVTLogo } from '@/components/AppShell';
+import { ViewType } from '@/components/AppShell';
 import { useTheme } from '@/lib/ThemeContext';
 
 const ROLES: Role[] = ['employee', 'lead', 'hr', 'coo', 'ceo'];
@@ -63,34 +64,45 @@ export default function Sidebar({
   return (
     <aside style={sidebarStyle}>
       {/* Logo area */}
-      <div style={{ padding: '24px 20px 20px', borderBottom: `1px solid ${theme.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {isMobile && onClose && (
-            <button
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: theme.textMuted,
-                fontSize: 18,
-                cursor: 'pointer',
-                padding: '0 4px 0 0',
-                lineHeight: 1,
-              }}
-            >
-              ✕
-            </button>
-          )}
-          <QVTLogo size={36} />
-          <div>
-            <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
-              QVT Media
-            </div>
-            <div style={{ color: theme.textMuted, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              Performance Hub
-            </div>
-          </div>
+      <div style={{ padding: '16px 20px 8px 20px', borderBottom: `1px solid ${theme.border}` }}>
+        {isMobile && onClose && (
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: theme.textMuted,
+              fontSize: 18,
+              cursor: 'pointer',
+              padding: '0 0 8px 0',
+              lineHeight: 1,
+              display: 'block',
+            }}
+          >
+            ✕
+          </button>
+        )}
+        <Image
+          src={isDark ? '/logo-dark.png' : '/logo-light.png'}
+          alt="QVT Media"
+          width={160}
+          height={48}
+          style={{ objectFit: 'contain', display: 'block' }}
+          priority
+        />
+        <div style={{
+          color: '#0b73a8',
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          fontFamily: 'Montserrat, sans-serif',
+          marginTop: 6,
+          marginBottom: 8,
+        }}>
+          Performance Hub
         </div>
+        <div style={{ height: 1, background: 'linear-gradient(to right, #0b73a8, transparent)' }} />
       </div>
 
       {/* Current role badge */}

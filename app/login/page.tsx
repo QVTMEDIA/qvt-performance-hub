@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { signIn } from '@/lib/auth';
 import { useTheme } from '@/lib/ThemeContext';
 
 export default function LoginPage() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
@@ -62,22 +63,20 @@ export default function LoginPage() {
       }}>
         {/* Logo + Heading */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ display: 'inline-flex', marginBottom: 16 }}>
-            <svg width={48} height={48} viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="8" fill="#0b73a8" />
-              <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle"
-                fill="#fff" fontSize="16" fontWeight="800" fontFamily="Montserrat, sans-serif">
-                Q
-              </text>
-            </svg>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+            <Image
+              src={isDark ? '/logo-dark.png' : '/logo-light.png'}
+              alt="QVT Media"
+              width={180}
+              height={54}
+              style={{ objectFit: 'contain' }}
+              priority
+            />
           </div>
-          <div style={{ color: theme.textPrimary, fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', marginBottom: 4 }}>
-            QVT Media
-          </div>
-          <div style={{ color: theme.textMuted, fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <div style={{ color: '#0b73a8', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', marginBottom: 12 }}>
             Performance Hub
           </div>
-          <div style={{ color: theme.textMuted, fontSize: 12, marginTop: 12 }}>
+          <div style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>
             Sign in to access your performance reviews
           </div>
         </div>

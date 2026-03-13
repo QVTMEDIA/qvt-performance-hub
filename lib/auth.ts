@@ -8,6 +8,7 @@ export interface Profile {
   role: Role;
   jobTitle?: string;
   department?: string;
+  isAdmin: boolean;
 }
 
 export async function signIn(email: string, password: string) {
@@ -42,5 +43,6 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     role:       data.role     as Role,
     jobTitle:   data.job_title   ?? undefined,
     department: data.department  ?? undefined,
+    isAdmin:    data.is_admin    ?? false,
   };
 }

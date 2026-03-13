@@ -1,4 +1,4 @@
-export type Role = 'employee' | 'lead' | 'hr' | 'coo' | 'ceo';
+export type Role = 'employee' | 'lead' | 'hr' | 'coo' | 'ceo' | 'admin';
 
 export type ReviewStatus =
   | 'draft'

@@ -68,6 +68,7 @@ export const ROLE_META: Record<Role, RoleMeta> = {
   hr: { label: 'People Lead (HR)', color: '#8b5cf6', icon: '🏢' },
   coo: { label: 'COO', color: '#d97706', icon: '📊' },
   ceo: { label: 'CEO', color: '#dc2626', icon: '🎯' },
+  admin: { label: 'Admin', color: '#6366f1', icon: '🛡️' },
 };
 
 export const PERIODS: string[] = [

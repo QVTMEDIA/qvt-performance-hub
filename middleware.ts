@@ -24,13 +24,25 @@ export async function middleware(req: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession();
 
-  const isLoginPage = req.nextUrl.pathname === '/login';
+  const isLoginPage  = req.nextUrl.pathname === '/login';
+  const isAdminRoute = req.nextUrl.pathname.startsWith('/admin');
 
   if (!session && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
   if (session && isLoginPage) {
     return NextResponse.redirect(new URL('/', req.url));
+  }
+
+  if (session && isAdminRoute) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', session.user.id)
+      .single();
+    if (!profile?.is_admin) {
+      return NextResponse.redirect(new URL('/', req.url));
+    }
   }
 
   return res;

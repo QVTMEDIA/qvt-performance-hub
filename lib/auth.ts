@@ -34,7 +34,16 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     .eq('id', user.id)
     .single();
 
-  if (error || !data) return null;
+  if (error) {
+    console.warn('[auth] profile query error:', error.message, error.code);
+    return null;
+  }
+  if (!data) {
+    console.warn('[auth] no profile row found for user:', user.id);
+    return null;
+  }
+
+  console.log('[auth] profile raw:', JSON.stringify({ is_admin: data.is_admin, role: data.role, email: data.email }));
 
   return {
     id:         data.id,

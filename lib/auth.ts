@@ -34,24 +34,18 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     .eq('id', user.id)
     .single();
 
-  if (error) {
-    console.warn('[auth] profile query error:', error.message, error.code);
-    return null;
-  }
-  if (!data) {
-    console.warn('[auth] no profile row found for user:', user.id);
-    return null;
-  }
+  if (error || !data) return null;
 
-  console.log('[auth] profile raw:', JSON.stringify({ is_admin: data.is_admin, role: data.role, email: data.email }));
+  // Treat as admin if either the is_admin flag is set OR role is 'admin'
+  const isAdmin = !!(data.is_admin || data.role === 'admin');
 
   return {
     id:         data.id,
     fullName:   data.full_name ?? '',
     email:      data.email    ?? user.email ?? '',
-    role:       data.role     as Role,
+    role:       isAdmin ? 'admin' : (data.role as Role),
     jobTitle:   data.job_title   ?? undefined,
     department: data.department  ?? undefined,
-    isAdmin:    data.is_admin    ?? false,
+    isAdmin,
   };
 }

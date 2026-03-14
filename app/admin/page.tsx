@@ -1,42 +1,37 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { getCurrentProfile, Profile } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { supabaseAdmin } from '@/lib/supabase';
+import type { Profile } from '@/lib/auth';
 import AdminShell from '@/components/admin/AdminShell';
 
-export default function AdminPage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [checking, setChecking] = useState(true);
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    getCurrentProfile().then(p => {
-      if (!p || !p.isAdmin) {
-        window.location.href = '/';
-        return;
-      }
-      setProfile(p);
-      setChecking(false);
-    });
-  }, []);
+export default async function AdminPage() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (checking) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#04111e',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'Montserrat, sans-serif',
-        color: '#4a7a99',
-        fontSize: 13,
-      }}>
-        Loading...
-      </div>
-    );
+  if (!user) redirect('/login');
+
+  const client = supabaseAdmin ?? supabase;
+  const { data: profile } = await client
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile?.is_admin && profile?.role !== 'admin') {
+    redirect('/');
   }
 
-  if (!profile) return null;
+  const adminProfile: Profile = {
+    id:         profile.id,
+    fullName:   profile.full_name  ?? '',
+    email:      profile.email      ?? user.email ?? '',
+    role:       'admin',
+    jobTitle:   profile.job_title  ?? undefined,
+    department: profile.department ?? undefined,
+    isAdmin:    true,
+  };
 
-  return <AdminShell profile={profile} />;
+  return <AdminShell profile={adminProfile} />;
 }

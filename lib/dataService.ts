@@ -1,5 +1,9 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { Review, Reminder, Role } from '@/types';
+
+// Use admin client (bypasses RLS) on the server; fall back to browser client on the client.
+// supabaseAdmin is null in the browser because SUPABASE_SERVICE_ROLE_KEY is not NEXT_PUBLIC_.
+const db = supabaseAdmin ?? supabase;
 
 // ─── Row → TypeScript mappers ─────────────────────────────────────────────────
 
@@ -68,18 +72,18 @@ function toDbReminder(rem: Reminder) {
 // ─── Reviews ──────────────────────────────────────────────────────────────────
 
 export async function fetchReviews(): Promise<Review[]> {
-  const { data, error } = await supabase.from('reviews').select('*');
+  const { data, error } = await db.from('reviews').select('*');
   if (error) throw error;
   return (data ?? []).map(mapToReview);
 }
 
 export async function createReview(rev: Review): Promise<void> {
-  const { error } = await supabase.from('reviews').insert(toDbReview(rev));
+  const { error } = await db.from('reviews').insert(toDbReview(rev));
   if (error) throw error;
 }
 
 export async function updateReview(rev: Review): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('reviews')
     .update(toDbReview(rev))
     .eq('id', rev.id);
@@ -89,13 +93,13 @@ export async function updateReview(rev: Review): Promise<void> {
 // ─── Reminders ────────────────────────────────────────────────────────────────
 
 export async function fetchReminders(): Promise<Reminder[]> {
-  const { data, error } = await supabase.from('reminders').select('*');
+  const { data, error } = await db.from('reminders').select('*');
   if (error) throw error;
   return (data ?? []).map(mapToReminder);
 }
 
 export async function createReminder(rem: Reminder): Promise<void> {
-  const { error } = await supabase.from('reminders').insert(toDbReminder(rem));
+  const { error } = await db.from('reminders').insert(toDbReminder(rem));
   if (error) throw error;
 }
 
@@ -108,7 +112,7 @@ export async function updateReminder(id: string, updates: Partial<Reminder>): Pr
   if (updates.sentBy   !== undefined) dbUpdates.sent_by   = updates.sentBy;
   if (updates.reviewId !== undefined) dbUpdates.review_id = updates.reviewId;
 
-  const { error } = await supabase
+  const { error } = await db
     .from('reminders')
     .update(dbUpdates)
     .eq('id', id);

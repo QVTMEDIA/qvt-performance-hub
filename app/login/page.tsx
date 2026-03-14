@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { signIn } from '@/lib/auth';
+import { signIn, getCurrentProfile } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
@@ -27,7 +27,8 @@ export default function LoginPage() {
       if (authError) {
         setError(authError.message);
       } else {
-        window.location.href = '/';
+        const profile = await getCurrentProfile();
+        window.location.href = profile?.isAdmin ? '/admin' : '/';
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');

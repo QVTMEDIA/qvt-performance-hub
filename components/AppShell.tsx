@@ -210,7 +210,10 @@ export default function AppShell() {
       const session = await getSession();
       if (session) {
         const profile = await getCurrentProfile();
-        if (profile) setRole(profile.role);
+        if (profile) {
+          if (profile.isAdmin) { window.location.href = '/admin'; return; }
+          setRole(profile.role);
+        }
       }
       try {
         const [revs, rems] = await Promise.all([fetchReviews(), fetchReminders()]);
